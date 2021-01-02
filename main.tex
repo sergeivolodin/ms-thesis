@@ -1,0 +1,95 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{natbib}
+
+\title{Learning Abstract Representations in General Reinforcement Learning Environments via Model Sparsity}
+\author{Sergei Volodin, Johanni Brea, Wulfram Gerstner}
+\date{Master's degree in Computer Science}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We would like to learn a sparse causal model of a Reinforcement Learning environment. Our experiments show that for reasonably challenging environments such as Montezuma revenge and MuJoCo, we are able to extract a latent space where the environment's model becomes linear. In addition, the resulting model is sparse, which allows to interpret it as a sparse causal graph. This shows the inherent hidden simplicity in the environment. Our findings simplify modelling of RL environments and allow to extract the game logic in an automated manner, allowing for more efficient planning. The agents trained with this approach are also more robust to distributional shift and require less data to train.
+\end{abstract}
+
+\section{Introduction}
+Consciousness prior, AIXI lead to simple or sparse models.
+
+Disentangled representations and representation learning
+
+Model-based reinforcement learning
+
+Causal modelling for reinforcement learning. Interventions
+
+AI safety: distributional shift robustness (generalization), interpretability, sample-efficiency
+
+\section{Proposed architecture}
+\subsection{Theory}
+Like in AIXI, would like to find the simplest model of the environment:
+$K(\mu)\to\min$ s.t. $L(\mu, data)\to\min$. In general, this problem is uncomputable.
+
+We decompose the model into a Decoder and a sparse Model. The model in observational space $W$ is then the sparse Model $M$ applied to Decoded features, with the result projected back into the high-dimensional space.
+$$
+W=D^{-1}MD
+$$
+
+Finding good features by regularizing the {\em model} to be sparse.
+
+Three losses: model fit, sparsity regularization, reconstruction
+
+Reconstruction losses: inverse decoder norm, reconstructing observations (autoencoder), inverse model norm (we force the model to be an invertible matrix), predicting actions, predicting value function from features (like in muzero)
+
+Causal learners: linear, graph NNs, linear with sampling
+
+For the model fit, we use Mean Squared Error. Alternatives are to use contrastive loss (with fake samples)
+
+For the sparsity, we use L1-regularization. An alternative is to use projection.
+
+Architecture improvements: model at each layer of the decoder for a faster fit, many time-steps, batch normalization, adaptive sparsity loss
+
+\section{Literature review}
+
+Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
+
+\cite{Battaglia2018} introduces Graph Neural Networks (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models.
+
+\cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
+
+Libraries: pytorch-geometric, graph-nets from DeepMind
+
+\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees. 
+
+\cite{Zambaldi2018} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to.
+
+\cite{Xie2020} introduce latent variables into the learned linear causal models using statistical tests.
+
+\cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
+
+\section{Environments}
+\begin{enumerate}
+    \item VectorIncrement. Recovering a sparse linear matrix from skewed observations
+    \item KeyChest. Learning a sparse causal graph in a grid-world
+    \item Physics environments. Learning physics laws
+    \item Atari: MsPacman, Montezuma Revenge. Learning a better representation than pixels
+    \item PyGame learning environment (flapping bird)
+    \item Starcraft. Learning in high-dimensional environments
+    \item VIZDoom. Learning abstract features
+    \item TextWorld. Extracting a low-dimensional model governing the decisions
+    \item OpenSpiel. Finding good representations automatically for known games
+\end{enumerate}
+
+\section{Results}
+\subsection{What does MuZero learn}
+\subsection{Learned graphs for our environments}
+\subsection{Game complexities}
+\subsection{Properties of the new agent}
+\subsubsection{Spurious correlations and exploration speed}
+\subsubsection{Sample efficiency}
+\subsubsection{Online DS robustness (re-training speed)}
+\subsubsection{Offline DS robustness (deploying into the environment)}
+
+\bibliographystyle{unsrt}
+\bibliography{abstraction_representation}
+
+\end{document}
