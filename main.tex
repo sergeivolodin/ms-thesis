@@ -119,11 +119,11 @@ Our approach allows to obtain "laws of physics" of an environment, or, more spec
 If an environment allows for a complete separation of some parts of its dynamics (for example, termination of the episode only depends on the health of the player, and another variable, such as the number of ammunition does not affect the health), out approach would capture it, because a graph with two components has less edges than a connected graph. This way, we {\em disentangle} the representation, as it consists of (recurrent) {\em independent} mechanisms.
 Such a model is very useful for explanations, because an effect of each action can be described in terms of changes in only a few variables (out of many). For example, for Cartpole with images as observations, our approach is expected to output the 4 features representing cart's and pole's position and velocity.
 
-The main challenge when implementing our approach is combining all the requirements (sparsity of the causal model, learning the decoder, and the non-degeneracy of the decoder) into a single training procedure. Specifically, we propose and compare several methods (simple aggregation of losses with coefficients, primal-dual method for optimization under constraints, and an adaptive scheme for choosing the loss coefficients) and employ several useful tricks (such as using a {\em relative} Mean Squared Error (MSE) loss to have an interpretable magnitude of the loss), and try different methods to enforce sparsity (from $l_1$-regularization to discrete variables with various methods to compute the gradients). We present an ablation study to show the effects of various tricks and techniques used.
+The main challenge when implementing our approach is combining all the requirements (sparsity of the causal model, learning the decoder, and the non-degeneracy of the decoder) into a single training procedure. Specifically, we propose and compare several methods (simple aggregation of losses with coefficients, primal-dual method for optimization under constraints, and an adaptive scheme for choosing the loss coefficients) and employ several useful tricks (such as using a {\em relative} Mean Squared Error (MSE) loss to have an interpretable magnitude of the loss, and adding the sampled binary mask of selected cause features to the model that predicts the effects), and use different methods to enforce sparsity (from $l_1$-regularization to discrete variables with various methods to compute the gradients). We present an ablation study to show the effects of various tricks and techniques used.
 
 We design a simple toy environment to illustrate learning of sparse causal models from high-dimensional data, and show that our approach successfully obtains the minimal causal graph on it. Additionally, we illustrate the same positive behavior on a grid-world environment. Surprisingly, the method find a simpler (but correct) graph for the toy environment than the authors anticipated.
 
-{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. We briefly mention the necessity of the learned decoder in theories of consciousness.
+{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. We briefly mention the implications of our work on the Integrated Information Theory of consciousness.
 
 The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
@@ -137,7 +137,64 @@ Finally, the method can be applied to challenging environments interesting in th
 \chapter{Background}
 %%%%%%%%%%%%%%%%%%%%
 
-In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity, methods for computing gradients for discrete variables
+In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity, methods for computing gradients for discrete variables, the Occam's razor in Solomonoff induction (supervised learning) and in the AIXI framework (Reinforcement Learning).
+
+We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$.
+
+\section{Reinforcement Learning}
+The standard Reinforcement Learning framework consists of an {\em environment} $\mu$ and an {\em agent} $\pi$. The environment and the agent interact during an {\em episode} consisting of $T<\infty$ discrete time-steps. First, the agent receives an {\em observation} $o_1\in O$ from the environment, where $O$ is the {\em observation space}. Next, the agent executes an {\em action} $a_1\in A$ where $A$ is the {\em action space}. Next, the environment gives the agent a) a scalar reward $r_1\in R$ where $R\subseteq \mathbb R$ is the {\em reward space}, and b) the next observation $o_2\in O$. Next, either the environment terminates the interaction, in this case, $T=2$, or the cycle repeats (the agent executes an action, etc). We introduce the termination variable $d_t$ ("done") as $d_t=0$, $t<T$ and $d_T=1$.
+
+A {\em history} (or an {\em episode}, or a {\em rollout}) of the interaction up to time-step $\tau$ consists of all the variables in the interaction in chronological order: $h_{\tau}=(o_1, a_1, r_1, o_2, ..., a_{\tau-1}, r_{\tau}, o_{\tau})$.
+
+For each time-step, the following holds: $(o_t, r_t)\sim \mu(a_{t-1}, h_{t-1})$ and $a_t\sim \pi(h_{t})$. This means that the observation and the reward at step $t$ is defined by the environment $\mu$ given the previous history, and the action at the step $t$ is defined by the agent given the previous history.
+
+We say that $h_T\sim (\mu, \pi)$ if the history $h_T$ was obtained from an interaction between the environment $\mu$ and the agent $\pi$.
+
+The {\em value} is defined as the discounted sum of rewards: $V(h_T)=\sum\limits_{t=1}^T\gamma^t r_t$, where $\gamma\in[0, 1]$ is the {\em discount factor}. The goal of the agent is to find such $\pi$ that $\mathbb E_{h_T\sim (\mu, \pi)} V$ is maximized.
+
+In our project, $A$ is discrete {\em discrete action}, such as $A=\{\mbox{up},\,\mbox{down},\,\mbox{left},\,\mbox{right}\}$\footnote{the model supports real-valued actions, they would be treated the same way as real-valued features without any difference}, and $O=\mathbb R^o$, where $o$ is the dimension of each observation. For example, $o=210\times 160\times 3$ for 210 rows, 160 columns and 3 RGB channels for an Atari observation, or $o=128$ for the $128$ RAM components in the RAM version. The reward space $R$ is bounded: $R=[r_{\min}, r_{\max}]$.
+
+Additionally, we consider a {\em Markov} class of environments: one where next time-step only depends on the previous time-step in the history, and not on the ones before it\footnote{A typical workaround to make some non-Markov environments to comply with this property is to stack a few observations together}. For this class of environments,
+$$
+(o_t, r_t)\sim \mu(a_t, o_{t-1}),\,a_t\sim\pi(o_t)
+$$
+
+For example, for Cartpole, $o_t$ is obtained using the kinematics equation, and $a_t$ is computed based on the velocities and the positions of the system.
+
+Another special important classes are {\em deterministic environments} -- ones where $\mu$ is a constant for every history (and not a distribution), and {\em deterministic agents} -- ones where $\pi$ is a constant given a history (and not a distribution).
+
+In what follows, we consider Markov deterministic environments with deterministic agents\footnote{To account for the stochasticity, the decoder and reconstructor should include an additional sampling step, and noise variables should be additionally injected as potential causes into the model}.
+
+
+\section{Model-based reinforcement learning}
+Model-based reinforcement learning agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$:
+$$
+\hat{o}_{t+1}=M_o(o_t, a_t)
+$$
+
+This function has the same signature as the environment. It is trained to fit the true dynamics: $\|o_{t+1}-\hat{o}_{t+1}\|\to\min$.
+
+Since predicting the high-dimensional observations is computationally expensive, the observation model is often decomposed into three components: a decoder, a feature model, and a reconstructor:
+$$
+M_o(o_t, a_t)=R(M_f(D(o_t), a_t))
+$$
+
+Here, the decoder $D$ maps an observation into a low-dimensional latent {\em feature space} $f_t=D(o_t)$, $f_t\in \mathbb R^f$ with $f$ being the dimension of the feature space. The feature model $M_f$ predicts next features from the current ones $f_{t+1}=M_f(f_t,a_t)$, and the reconstructor $R$ maps the features back to the observation space: $\hat{o}_{t+1}=R(f_{t+1})$.
+
+This way, the computationally expensive reconstructor can be fit on two kinds of data: end-to-end to predict the next features $\|\hat{o}_{t+1}-o_{t+1}\|\to\min$ where $\hat{o}_{t+1}=M_o(o_t, a_t)$, and to predict the current ones $\|\hat{o}_t-o_t\|\to\min$, where $\hat{o}_t=R(D(o_t))\equiv R(f_t)$. This way, the convergence is sped up.
+
+Another technique prevents predicting high-dimensional observations altogether by replacing $R$ with a value function predictor, which is fit to predict the reward-to-go $R_t(h_T)=\sum\limits_{\tau=t}^{T}\gamma^{\tau-t+1}r_{\tau}$:
+$\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
+
+\section{Causal modeling and deep causal modeling}
+
+\section{Enforcing sparsity in deep architectures}
+
+\section{Methods to compute gradients of discrete variables}
+
+\section{The AIXI framework and its connection to our work}
+\subsection{Solomonoff induction}
+\subsection{The AIXI framework}
 
 The background section introduces the necessary background to understand your
 work. This is not necessarily related work but technologies and dependencies
