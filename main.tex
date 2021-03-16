@@ -19,12 +19,22 @@
 %\usepackage{natbib}
 \usepackage{xspace}
 
-\title{Learning Abstract Representations in General Reinforcement Learning Environments via Model Sparsity}
+\title{Learning Interpretable Abstract Representations in Reinforcement Learning Environments via Model Sparsity}
 \author{Sergei Volodin}
 \supervisor{Dr. Johanni Brea}
 \adviser{Prof. Wulfram Gerstner}
 %\coadviser{Second Adviser}
 \expert{Carl-Johann Simon-Gabriel}
+
+\dedication{\begin{raggedleft}
+        The strongest evidence that we can obtain for the validity of a proposed induction method, is that it yields results that are in accord with intuitive evaluations in many different kinds of situations in which we have strong intuitive ideas.\\
+        --- Ray J. Solomonoff\\
+    \end{raggedleft}
+}
+
+\acknowledgments{
+I thank my parents for the support in my studies, Switzerland and EPFL in particular for making it possible.
+}
 
 \address{EPFL IC/SV Laboratory of Computational Neuroscience (LCN)\\
     Bâtiment AAB \\
@@ -37,7 +47,24 @@
     \makeacks
 
 \begin{abstract}
-We would like to learn a sparse causal model of a Reinforcement Learning environment. Our experiments show that for reasonably challenging environments such as Montezuma revenge and MuJoCo, we are able to extract a latent space where the environment's model becomes linear. In addition, the resulting model is sparse, which allows to interpret it as a sparse causal graph. This shows the inherent hidden simplicity in the environment. Our findings simplify modelling of RL environments and allow to extract the game logic in an automated manner, allowing for more efficient planning. The agents trained with this approach are also more robust to distributional shift and require less data to train.
+"I choose this restaurant because they have vegan sandwiches" could be a typical explanation we would expect from a human. However, current Reinforcement Learning (RL) techniques are not able to provide such explanations, when trained on raw pixels.
+RL for state-of-the-art benchmark environments are based on neural networks, which lack interpretability, because of the very factor that makes them so versatile -- they have many parameters and intermediate representations.
+The best result that could be obtained are two rollouts from the internal model of the agent, showing that one policy would result in a higher reward than the another policy. These rollouts would be high-dimensional objects that are hard to compare together or reason about.
+In contrast, humans use shorter explanations that capture only the essential parts. This is possible because the world contains hierarchical structures in which only a few factors are important, and the rest can be ignored.
+Interpretability of the resulting agent is crucial if such an agent is deployed in the real world in mission-critical scenarios, because a black-box neural network could give wrong predictions on unexpected inputs, without even giving an ability to know the reason of the failure. Thus, interpreting Reinforcement Learning agents is an important step towards safely deploying them.
+In addition, the quest to mimic human-like reasoning is of general scientific interest, as it sheds light on the easy problem of consciousness.
+
+To make an agent that can reason like a human does, we first need to learn a representation that corresponds to high-level objects contained in the environment, and their properties, like the representation that the natural language uses. If we lack such a representation, any reasoning algorithm's outputs would be useless for interpretability, since even the "referents" of the "thoughts" of such a system would be obscure to us: it would take many words of natural language to explain one concept that the system uses. Thus, a subgoal of making interpretable agents is to create representations that allow for simple explanations of causes and their effects in a given environment.
+
+One way to define simplicity of causal explanations is the sparsity of the Causal Model that describes the environment: the causal graph has the fewest edges connecting causes to their effects. For example, a model for choosing the restaurant that only depends on the cause "vegan" is simpler and more interpretable than a model that looks at each pixel of a photo of the menu of a restaurant.
+
+In addition, sparse causal models describing the latent dynamics are hypothesized by Yoshua Bengio to be crucial in the functioning of human consciousness, since human explanations have only few important causes.
+
+In this thesis, we propose a framework for model-based Reinforcement Learning where the model is regularized for simplicity in terms of sparsity of the causal graph it corresponds to.
+The framework contains a learned mapping from observations to latent features, and a model. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves.
+We test this framework on benchmark environments with non-trivial high-dimensional dynamics and show that it can uncover the causal graph with the fewest edges in the latent space.
+
+For the future work, the causal graph can be used for easier grounding on a set of natural language explanations, as the agent now "knows" about the high-level concepts that the environment contains. In addition, a simple model would likely be less prone to overfitting, which could result in an improved robustness of such agents to distributional shift.
 \end{abstract}
 
 \maketoc
@@ -45,6 +72,34 @@ We would like to learn a sparse causal model of a Reinforcement Learning environ
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Introduction}
 %%%%%%%%%%%%%%%%%%%%%%
+
+Reinforcement learning is a general paradigm in Artificial Intelligence (AI) that considers two entities: an environment and an agent which interact with each other over multiple time-steps. The agent takes actions in the environment, and the environment gives the agent an observation representing the state of the environment, and a reward. The goal of the agent is to execute actions that lead to highest total reward during the interaction.
+
+While RL environments in general can have arbitrary complexity, practically interesting environments usually have a certain low-dimensional structure in them. For example, in the popular CartPole environment, the observation (as image) has 720 000 variables, while the dynamics of the cart can be explained using only 4 variables with a simple Newtonian update rule. Atari games, while having 100 800 variables in an observation, can be described using only 128 bytes (of the RAM state). The dynamics in the pixel space would be complex, with one pixel at the next time-step potentially depending on all of the pixels on the previous one. However, the dynamics in the latent space is much simpler. The real world has this property as well: while a camera can capture many megapixels per second observing a drone, the equations describing the dynamics of the drone only have a few variables, and are much simpler.
+
+
+RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or controversial content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Since the most capable agents are based on neural networks (NNs), it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability), because apriori there is no structure in the network.
+
+Even the state-of-the-art approaches that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the outcome of a network would be in all of the input scenarios.
+
+In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning task, with an objective of obtaining representations allowing for good explanations. In addition, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
+
+While deep neural networks allow to fit various kinds of data, but lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artifical Intelligence (AI) approaches are interpretable (explainable) but lack the versatility of neural networks: they are not applicable to all the tasks.
+Such GOFA approaches are characterized by discrete symbols that are the basis of a reasoning system, i.e. first-order logic.
+These symbols correspond to real-world concepts and objects, such as the coordinates of a robot on the floor.
+The drawback of such systems is that the mapping from real-world "messy" data (e.g. images from a camera) to discrete symbols (e.g. the coordinates) is hand-designed and thus requires effort.
+Unifying these two approaches yields the best of both worlds, with the versatility of deep AI in being able to fit almost any dataset and the explainability of traditional AI.
+To do so, we learn the representation of observations using a deep network. These representations are used by a system involving discrete components to make explainable predictions about the environment.
+
+The quality of explanations given by such an agent would depend on the learned representation. Specifically, a representation of the observation in which every variable depends on every variable would be practically useless: an action potentially changes all of the variables, and, therefore, an explanation of action's effect would require to list all of them.
+
+
+
+ We would like to automatically uncover the simple structure in the underlying complex high-dimensional observations that the environment dynamics generates.
+
+To make the actions explainable by the environment.
+
+
 
 The introduction is a longer writeup that gently eases the reader into your
 thesis~\cite{dinesh20oakland}. Use the first paragraph to discuss the setting.
