@@ -1,18 +1,148 @@
-\documentclass{article}
-\usepackage[utf8]{inputenc}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EPFL report package, main thesis file
+% Goal: provide formatting for theses and project reports
+% Author: Mathias Payer <mathias.payer@epfl.ch>
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   http://www.latex-project.org/lppl.txt
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper,11pt,oneside]{report}
+% Options: MScThesis, BScThesis, MScProject, BScProject
+\usepackage[MScThesis,lablogo]{EPFLreport}
 \usepackage{amsmath,amssymb}
-\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+%\usepackage{natbib}
+\usepackage{xspace}
 
 \title{Learning Abstract Representations in General Reinforcement Learning Environments via Model Sparsity}
-\author{Sergei Volodin, Johanni Brea, Wulfram Gerstner}
-\date{Master's degree in Computer Science}
+\author{Sergei Volodin}
+\supervisor{Dr. Johanni Brea}
+\adviser{Prof. Wulfram Gerstner}
+%\coadviser{Second Adviser}
+\expert{The External Reviewer}
+
+\address{EPFL IC/SV Laboratory of Computational Neuroscience (LCN)\\
+    Bâtiment AAB \\
+    offices 135-141 \\
+    CH-1015 Lausanne}
 
 \begin{document}
-\maketitle
+    \maketitle
+    \makededication
+    \makeacks
 
 \begin{abstract}
 We would like to learn a sparse causal model of a Reinforcement Learning environment. Our experiments show that for reasonably challenging environments such as Montezuma revenge and MuJoCo, we are able to extract a latent space where the environment's model becomes linear. In addition, the resulting model is sparse, which allows to interpret it as a sparse causal graph. This shows the inherent hidden simplicity in the environment. Our findings simplify modelling of RL environments and allow to extract the game logic in an automated manner, allowing for more efficient planning. The agents trained with this approach are also more robust to distributional shift and require less data to train.
 \end{abstract}
+
+\maketoc
+
+%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The introduction is a longer writeup that gently eases the reader into your
+thesis~\cite{dinesh20oakland}. Use the first paragraph to discuss the setting.
+In the second paragraph you can introduce the main challenge that you see.
+The third paragraph lists why related work is insufficient.
+The fourth and fifth paragraphs discuss your approach and why it is needed.
+The sixth paragraph will introduce your thesis statement. Think how you can
+distill the essence of your thesis into a single sentence.
+The seventh paragraph will highlight some of your results
+The eights paragraph discusses your core contribution.
+
+This section is usually 3-5 pages.
+
+%%%%%%%%%%%%%%%%%%%%
+\chapter{Background}
+%%%%%%%%%%%%%%%%%%%%
+
+The background section introduces the necessary background to understand your
+work. This is not necessarily related work but technologies and dependencies
+that must be resolved to understand your design and implementation.
+
+This section is usually 3-5 pages.
+
+
+%%%%%%%%%%%%%%%%
+\chapter{Design}
+%%%%%%%%%%%%%%%%
+
+Introduce and discuss the design decisions that you made during this project.
+Highlight why individual decisions are important and/or necessary. Discuss
+how the design fits together.
+
+This section is usually 5-10 pages.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Implementation}
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+The implementation covers some of the implementation details of your project.
+This is not intended to be a low level description of every line of code that
+you wrote but covers the implementation aspects of the projects.
+
+This section is usually 3-5 pages.
+
+
+%%%%%%%%%%%%%%%%%%%%
+\chapter{Evaluation}
+%%%%%%%%%%%%%%%%%%%%
+
+In the evaluation you convince the reader that your design works as intended.
+Describe the evaluation setup, the designed experiments, and how the
+experiments showcase the individual points you want to prove.
+
+This section is usually 5-10 pages.
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Related Work}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The related work section covers closely related work. Here you can highlight
+the related work, how it solved the problem, and why it solved a different
+problem. Do not play down the importance of related work, all of these
+systems have been published and evaluated! Say what is different and how
+you overcome some of the weaknesses of related work by discussing the
+trade-offs. Stay positive!
+
+This section is usually 3-5 pages.
+
+
+%%%%%%%%%%%%%%%%%%%%
+\chapter{Conclusion}
+%%%%%%%%%%%%%%%%%%%%
+
+In the conclusion you repeat the main result and finalize the discussion of
+your project. Mention the core results and why as well as how your system
+advances the status quo.
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliography}
+\printbibliography
+
+% Appendices are optional
+% \appendix
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \chapter{How to make a transmogrifier}
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% In case you ever need an (optional) appendix.
+%
+% You need the following items:
+% \begin{itemize}
+% \item A box
+% \item Crayons
+% \item A self-aware 5-year old
+% \end{itemize}
 
 \section{Introduction}
 Consciousness prior, AIXI lead to simple or sparse models.
@@ -92,7 +222,7 @@ Now, consider the "stuck at the right wall" $f_3=M_ff_3+A_1$, and going right fr
 
 Here, $f_t=D(s_t)$ and $s_t=R(f_t)$
 
-Imagine if the representation $f$ is sparse at every time-step. Does this guarantee an interpretable environment? 
+Imagine if the representation $f$ is sparse at every time-step. Does this guarantee an interpretable environment?
 
 From the point of view of the Free Energy principle, we are looking for a minimal Markov Blanket.
 
@@ -101,7 +231,7 @@ From the point of view of the leading theory of consciousness, Integrated Inform
 
 What if the decoder is too complex? We could re-use components, like humans don't need to re-learn existing conv1 filters to learn a new game.
 
-In the model, we can sample from a categorical gumbel-softmax distribution in order to select a model. We can re-use models for different features. Each of the feature models has a categorical distribution over the bank of models, and we regularize for the total entropy of all models (with an addition that we can permute the features in arbitrary way before applying the model). 
+In the model, we can sample from a categorical gumbel-softmax distribution in order to select a model. We can re-use models for different features. Each of the feature models has a categorical distribution over the bank of models, and we regularize for the total entropy of all models (with an addition that we can permute the features in arbitrary way before applying the model).
 
 
 The total complexity of the environment $\mu$ is thus $K(\mu)=K(M_a)+K(M_f)+K(D)+K(R)$
@@ -133,7 +263,7 @@ Simple mathematical equations can describe our world well \cite{hamming1980unrea
 
 Libraries: pytorch-geometric, graph-nets from DeepMind
 
-\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees. 
+\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees.
 
 \cite{Zambaldi2018} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to. Similar technique can be seen in \cite{Hahne2019} to solve visual reasoning tasks (similar to IQ tests)
 
@@ -141,13 +271,13 @@ Libraries: pytorch-geometric, graph-nets from DeepMind
 
 \cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
 
-\cite{VanDenOord2018} fit a neural autoregressive model. The paper suggests that fitting many-step future predictions is of utter importance, since only in such predictions the model is tested for "true" generalization of high-level features. The paper also suggests that MSE or other losses commonly used for reconstruction are not optimal, and generative models are hard to train. As an alternative, the paper suggests optimizing for the mutual information between the latent code and the original inputs. The model predicts the log-odds ratio for an offset $k$ and input up to time $t$ as $f_k(x_{t+k},c_t)\sim \frac{p(x_{t+k}|c_t)}{p(x_{t+k})}$ with a model $f_k(x_{t+k}, c_t)=e^{D(x_{t+k})^TW_kc_t}$. This model is trained using the InfoNCE loss (noise-contrastive estimation) $L=-\mathbb E_X\log\frac{f_k(x_{t+k}, c_t)}{\sum_{x_j\in X}f_k(x_j,c_t)}$. The dataset $X$ consists of one sample $x\sim p(x_{t+k}|c_t)$ (ground truth) and negative samples $x\sim p(x_{t+k})$ (the prior). 
+\cite{VanDenOord2018} fit a neural autoregressive model. The paper suggests that fitting many-step future predictions is of utter importance, since only in such predictions the model is tested for "true" generalization of high-level features. The paper also suggests that MSE or other losses commonly used for reconstruction are not optimal, and generative models are hard to train. As an alternative, the paper suggests optimizing for the mutual information between the latent code and the original inputs. The model predicts the log-odds ratio for an offset $k$ and input up to time $t$ as $f_k(x_{t+k},c_t)\sim \frac{p(x_{t+k}|c_t)}{p(x_{t+k})}$ with a model $f_k(x_{t+k}, c_t)=e^{D(x_{t+k})^TW_kc_t}$. This model is trained using the InfoNCE loss (noise-contrastive estimation) $L=-\mathbb E_X\log\frac{f_k(x_{t+k}, c_t)}{\sum_{x_j\in X}f_k(x_j,c_t)}$. The dataset $X$ consists of one sample $x\sim p(x_{t+k}|c_t)$ (ground truth) and negative samples $x\sim p(x_{t+k})$ (the prior).
 
 When using probabilistic inference with gradient descent-like algorithms, we need to differentiate through a sampled value $X$ with respect to the sampled parameters $X\sim X(\theta)$. For discrete distributions, reparametrization trick would not work directly, as the gradient of argmax is zero a.s. One version is the log-likelihood trick, but it results in high variance. Another approach is to replace the hard discrete distribution with a soft one, one version of which is the Concrete distribution \cite{Maddison2017}.
 
 \cite{kalainathan2018structural, ng2019masked} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). \cite{Brouillard2020} extend this approach to modelling interventions.
 
-\cite{Fallah2020} use dictionary learning with an autoencoder. 
+\cite{Fallah2020} use dictionary learning with an autoencoder.
 
 \cite{kipf2019contrastive} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models.
 
@@ -248,7 +378,7 @@ Consider the following cases:
     \item $p=1$. In this case, we would like to turn off some of the features, because we would like to obtain the most sparse model.
 \end{enumerate}
 
-Overall we would like to find the sparsest graph such that the sparsity gap does not exceed some $\varepsion_{\max}$:
+Overall we would like to find the sparsest graph such that the sparsity gap does not exceed some $\varepsilon_{\max}$:
 $$
 \min L_{sparse}\,s.t.\,\delta\leq \varepsilon_{\max},L_{model}^{p=1}+L_{rec}\leq \varepsilon_{loss}
 $$
@@ -257,7 +387,7 @@ This is a constrained optimization problem. There are several approaches to this
 \begin{enumerate}
     \item Static linear combination: $\frac{L_{sparse}}{NM}+\frac{L_{model}^{p=p}+L_{model}^{p=1}}{2N}+\frac{L_{rec}}{O}$
     \item Dynamic linear combination: $\frac{L_{rec}}{O}+\frac{L_{model}^{p=1}+L_{model}^{p=p}}{2N}+\beta L_{sparse}$ where $\beta$ is chosen based on the value of $\delta$ as described above
-    \item Lagrange multipliers. We consider $\mathcal L(\lambda, D, M, R)=L_{sparse}+\lambda (L_{rest}-\varepsilon_{rest})$. The point with $\max_{\lambda}_\min_{D, M, R}\mathcal L$ corresponds to $L_{sparse}\to\min$ s.t. $L_{rest}\leq\varepsilon_{rest}$. The standard solution is a primal-dual method:
+    \item Lagrange multipliers. We consider $\mathcal L(\lambda, D, M, R)=L_{sparse}+\lambda (L_{rest}-\varepsilon_{rest})$. The point with $\max_{\lambda}\min_{D, M, R}\mathcal L$ corresponds to $L_{sparse}\to\min$ s.t. $L_{rest}\leq\varepsilon_{rest}$. The standard solution is a primal-dual method:
     $$\lambda_{t+1}=\lambda+\eta\frac{\partial \mathcal L}{\partial \lambda}$$
     $$(D, M,R)_{t+1}=(D,M,R)-\eta\frac{\partial\mathcal L}{\partial (D, M, R)}$$
 \end{enumerate}
@@ -293,7 +423,5 @@ This is a constrained optimization problem. There are several approaches to this
 \subsubsection{Online DS robustness (re-training speed)}
 \subsubsection{Offline DS robustness (deploying into the environment)}
 
-\bibliographystyle{unsrt}
-\bibliography{abstraction_representation}
 
 \end{document}
