@@ -139,7 +139,7 @@ Finally, the method can be applied to challenging environments interesting in th
 
 In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity, methods for computing gradients for discrete variables, the Occam's razor in Solomonoff induction (supervised learning) and in the AIXI framework (Reinforcement Learning).
 
-We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$.
+We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$.
 
 \section{Reinforcement Learning}
 The standard Reinforcement Learning framework consists of an {\em environment} $\mu$ and an {\em agent} $\pi$. The environment and the agent interact during an {\em episode} consisting of $T<\infty$ discrete time-steps. First, the agent receives an {\em observation} $o_1\in O$ from the environment, where $O$ is the {\em observation space}. Next, the agent executes an {\em action} $a_1\in A$ where $A$ is the {\em action space}. Next, the environment gives the agent a) a scalar reward $r_1\in R$ where $R\subseteq \mathbb R$ is the {\em reward space}, and b) the next observation $o_2\in O$. Next, either the environment terminates the interaction, in this case, $T=2$, or the cycle repeats (the agent executes an action, etc). We introduce the termination variable $d_t$ ("done") as $d_t=0$, $t<T$ and $d_T=1$.
@@ -187,10 +187,140 @@ Another technique prevents predicting high-dimensional observations altogether b
 $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
 \section{Causal modeling and deep causal modeling}
+In a nutshell, causal models are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
+
+More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$.
+
+A {\em deterministic structural causal model (SCM) with 1-step dependencies} is a set of functions $F_i$, $i\in[f]$, which output the value of the feature $i$ at the current time-step given a subset of features $PA_i$ at the previous time-step: $f_i^{t=\tau}=F_i(f_j^{t=\tau-1},j\in PA_i)$. In the following, we write $F_i(PA_i)\equiv F_i(f_j^{t=\tau-1},j\in PA_i)$. For example, if $PA_i=[f]$ for all $i\in[f]$, each feature $i$ depends on all features $j$ at the previous time-step. This is the most general case -- as all SCMs will fall into this category. However, we would like to find structure in the data: some features do not require {\em all} the features to predict them. For example, in a game the coordinate of the player is unlikely to depend on its ammunition. There could be a correlation (for example, having collected some inventory allows access to another room), but the ammunition is not required to predict the position, as we could just use the previous position, the action taken, and whether or not there are any obstacles around, instead.
+
+Granger causality is defined in the way as in the example above: a feature $j$ can be excluded from $PA_i$ if the best function (measured by the Mean Squared Error loss) that predicts $f_i$ from $PA_i\setminus\{j\}$ has the same loss as the best function that predicts $f_i$ from $PA_i$.
+
+More generally, we set $\delta(PA_i,j)=\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i\setminus\{j\})\|-\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i)\|$. This is the difference in the losses without and with feature $j$ when predicting the feature $i$, given the current set $PA_i$.
+Given a threshold $\varepsilon>0$, if $\delta(PA_i,j)<\varepsilon$, we could exclude $j$ from $PA_i$, and this would only worsen the prediction quality by $\varepsilon$.
+
+\subsection{Neural Granger Causality}
+In order to find $F_i$ in practice, we model them with neural networks with input size $f$ (including all features). $F_i\colon \mathbb R^{f}\to\mathbb R$. In order to account for $PA_i$, we pre-multiply the input to each function $F_i$ by a binary mask $B_i\in\{0,1\}^f$:
+$$
+\hat{f}_i^{t+1}=F_i(f^t\odot B_i)
+$$
+
+Next, we fit functions $F_i$ using least squares regression:
+
+$$
+\mathcal L=\frac{1}{T}\sum\limits_{i=1}^f\sum\limits_{t=1}^T \left(f^{t+1}_i-\hat{f}_i^{t+1}\right)^2\to\min
+$$
+
+The gradient with respect to the parameters of $F_i$ is computed in standard way, and we present methods to enforce sparsity of $B_i$ in the next section.
 
 \section{Enforcing sparsity in deep architectures}
+Suppose that we are fitting a loss function which depends on a binary variable, like in the previous section:
+$$
+\mathcal L=\frac{1}{T}\sum\limits_{t=1}^T(y_t-F(x_t\odot B))\to\min\limits_{F,B}
+$$
+
+Here, $y_t\in\mathbb R^y$ is the target, $x_t\in\mathbb R^x$ is the input data, nd $B\in\mathbb \{0,1\}^x$ is a binary mask.
+
+One (very inefficient) method to solve this problem is to a) go over all possible masks $B$ b) for each of them, find the best model $F$ c) select the most sparse $\|B\|_0\to\min$, such that $\mathcal L(B)\leq\varepsilon$ for some threshold $\varepsilon$. The complexity of such search is $\mathcal O(2^x)$, which is not feasible even for $x=20$\footnote{In our setups, even for the simplest environment, $x>20$}. In general, this problem would be NP-hard, as it is the feature selection problem.
+
+We can use gradient descent on $B$ if we relax the problem. There are several methods for it.
+\begin{enumerate}
+    \item The obvious solution is to allow $B_i\in[0,1]$ instead of $B_i\in\{0,1\}$ and regularize the model with $\|B\|_1$. This would enforce sparsity on $B$. However, since we are using a multi-layer network, this solution would not work: in practice, the coefficients in $B$ are never exactly $0$, and the subsequent layers can simply multiply the incoming value by a large constant. Therefore, while $B$ is sparse, the network could actually still be using all the features.
+    \item In the rest of the methods, we sample (element-wise) $B\sim Be(P)$ from the Bernoulli distribution, where $P\in[0,1]^x$ is a matrix of probabilities. The computation of the gradient of the loss with respect to the parameters of the distribution is described in the next section
+\end{enumerate}
 
 \section{Methods to compute gradients of discrete variables}
+This section describes standard methods to compute gradients with respect to a binary variable. We have the same setup as in the previous section.
+
+We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probability $P_i$, and, therefore, the distribution $Be(P_i(\theta_i))$.
+
+We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods follows [Bengio].
+
+\begin{enumerate}
+    \item REINFORCE gradient. Consider $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{b_i\sim Be(p_i),\,i\in[x]}\mathcal L(b_1,...,b_x)$. We split the expectation into two: $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{b_i\sim Be(p_i)}\mathbb E_{b_i\sim Be(p_j),\,j\in[x],\,j\neq i}\mathcal L(b_1,...,b_x)$. Next, we write $\mathbb E_{b_i}$ explicitly with $\mathbb E_{b_{\setminus i}}$ meaning $\mathbb E_{b_i\sim Be(p_j),\,j\in[x],\,j\neq i}$:
+    $$
+    L'_{\theta_i}=\frac{\partial}{\partial \theta_i}\left[p_i\mathbb E_{b_{\setminus i}}\mathcal L\big|_{b_i=1}+(1-p_i)\mathbb E_{b_{\setminus i}}\mathcal L\big|_{b_i=0}\right]
+    $$
+    Now, only $p_i$ depends on $\theta_i$, and the expected loss $\mathbb E_{b_{\setminus i}}\mathcal L$ does not. Therefore,
+    $$
+    L'_{\theta_i}=\frac{\partial p_i}{\partial\theta_i}\cdot \left[\mathbb E_{b_{\setminus i}}\left(L\big|_{b_i=1}-L\big|_{b_i=0}\right)\right]
+    $$
+    The second multiplier on the right-hand side in the equation above is the difference between the expected losses with the variable $b_i$ on and off, while the expectation is taken with respect to all the other binary variables.
+
+    Now, if we have a batch with sampled masks $B_i$, in which the variable $b_i$ takes the value of $1$ $N_i^{+}$ times, and the value of $0$ $N_i^-$ times, we can set up a sample mean estimate:
+
+    $$
+    L'_{\theta_i}\approx \frac{\partial p_i}{\partial\theta_i}\cdot\left[\frac{1}{N_i^{+}}\sum\limits_{t=1,B_i^t=1}^TL(b_1,...,b_x)-\frac{1}{N_i^{-}}\sum\limits_{t=1,B_i^t=0}^TL(b_1,...,b_x)\right]
+    $$
+
+    Note that we have to have at least one sample with $B_i^t=0$ and one with $B_i^t=1$ for this expression to be valid. Otherwise, the gradient is undefined, and the update is not performed for this component of the gradient.
+
+    The drawback of such an approach is high variance, pertinent to REINFORCE estimators. The advantage is its simplicity of tuning (it has no hyperparameters), and the fact that the gradient estimate is unbiased (with increases in batch sizes $T$, the gradient tends to its true value by the Central Limit Theorem).\footnote{This is called a REINFORCE gradient because it uses the same technique -- log-likelihood trick, as the REINFORCE algorithm for Reinforcement Learning. Another way to obtain the equation is to consider the log-likelihood trick: $\partial/\partial\theta_i\mathbb E_{b_i}\mathcal L=\partial/\partial\theta_i\int p(b_i)\mathcal L(b_i)db_i=\int\partial p(b_i)/\partial\theta_iL(b_i)db_i=\int\partial \log p(b_i)/\partial \theta_i p(b_i)L(b_i)db_i=\mathbb E_{b_i}\partial \log p(b_i)/\partial\theta_i L(b_i)$. For the Bernoulli distribution, $\partial \log p(b_i)/\partial \theta_i=\frac{\partial p_i}{\partial\theta_i}\frac{1}{p_i}$ if $b_i=1$ or $-\frac{\partial p_i}{\partial\theta_i}\frac{1}{1-p_i}$ otherwise, and the denominators cancel out with the probability mass function.}
+
+    In order to keep the values of $p_i$ in $[0,1]$, we simply project to $[0,1]$ after each gradient step: if $p'_i>1$, we set $p_i=1$, and the same for $p'_i<0$.
+
+    \item Straight-through estimator. We set $\theta_i\equiv p_i$ and simply ignore the fact that there was sampling:
+    $$
+    \frac{\partial \mathbb E \mathcal L}{\partial p_i}=\frac{\partial \mathbb E \mathcal L}{\partial B_i}
+    $$
+
+    Here, we simply compute the gradient with respect to the variable $B_i$, as if it were a real-valued one.
+    \item Gumbel-Softmax. In the forward pass (when computing the value of the loss), we sample from the Bernoulli distribution. In the Backward pass, we compute the gradient as follows. Consider the probabilities $p_i$ and $q_i=1-p_i$ corresponding to sampling either $1$ or $0$ (two categories).
+
+    We define $l_p=\log p_i+g_p)$ and $l_q=\log q_i+g_q$. Here, $g_p$ and $g_q$ are independent samples from the {\em Gumbel} distribution. It has the following property: $\arg\max [l_p, l_q]\overset{d}{=}Be(p)$: the distributions are equal.
+
+    Now, we replace the $\arg\max$ with $\mbox{soft}\arg\max$:
+
+    $$
+    B_i:=z_p=\frac{\exp(l_p/\tau)}{\exp(l_p/\tau)+\exp(l_q/\tau)}
+    $$
+
+    When $\tau\to 0$, $z_p\to Be(p_i)$ ($\mbox{soft}\arg\max$ becomes $\arg\max$). If $\tau\to\infty$, $z_p\to1/2$.
+
+    For $\tau\in(0,\infty)$, We set the (biased) gradient to be:
+
+    $$
+    \frac{\partial \mathbb E\mathcal L}{\partial p_i}:=\frac{\partial \mathbb E \mathcal L}{\partial B_i}\frac{\partial z_p}{\partial p_i}.
+    $$
+
+    The advantage is that the gradient is defined even for a single sample. Compared to the previous approach, there is no additional noise due to the fact that a sample estimate is used.
+
+
+    Using the Taylor series, the gradients of Gumbel-Softmax at points $0$ and $1$ are:
+    $$
+    z_p=p\exp(g_{i1}-g_{i2})+o(p),\,
+    z_p=1-(1-p)\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
+    $$
+
+    Therefore, the derivatives for this smooth function are:
+    $$
+    z'_{p,p_i}=\exp(g_{i1}-g_{i2})+o(p),\,p\to 0,\,z'_{p,p_i}=\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
+    $$s
+
+    For the point $p=0.5$, $z'_{p,p_i}=4e^{g_1+g_2}/(e^{g_1}+e^{g_2})^2$
+
+    The random variable $g_{i1}-g_{i2}$ is distributed logistically with parameters $\mu=0$, $s=1$, and, therefore, the value $\exp(g_{i1}-g_{i2})$ is heavy-tailed: it's mean value and the variance diverge. We expect arbitrary high values for this expectation. This means that as we get closer to the value of $p=0$ or $p=1$, the noise in the gradients increases. Other terms in the series cannot improve the convergence of the integral, as even the first term diverges.
+
+    In practice, it means that Gumbel-Softmax never reaches this value, and rather slows down.
+
+%    In some implementations, the value of $g$ is truncated with the sampling equation $g=-\log(-\log(u+\varepsilon)+\varepsilon)$ with $\varepsilon=10^{-20}$ and $u\sim U[0,1]$ (uniform distribution). Such a variable will result in a converging integral for the mean and variance.
+
+
+
+%    Since $g_{i1}$ and $g_{i2}$ are independent and identically distributed, we have $\mathbb E e^{g_1-g_2}=\frac{\mathbb E e^{g_1}}{\mathbb e^{g_2}}=1$, and the expected values of the derivatives become:
+%    $$
+%    z'_{p,p_i}=1+o(p),\,p\to 0,\,z'_{p, p_i}=1+o(1-p),\,p\to 1
+%    $$
+
+    The standard implementation takes logits $h=\log p_i$ as input. Since $\partial z/\partial p=\partial z/\partial h\cdot \partial h/\partial p$, and $\partial h/\partial p=1/p$ we compute $\partial z/\partial h=p+o(p^2),p\to 0$. Therefore, the derivative w.r.t. the logits {\em vanishes} as we approach $0$ or $1$ in probability.
+
+    \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
+
+
+    \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $b_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
+    \item Custom gradient from LCN [cite!] [compare with no-logits-Gumbel]
+\end{enumerate}
+
+In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
 
 \section{The AIXI framework and its connection to our work}
 \subsection{Solomonoff induction}
