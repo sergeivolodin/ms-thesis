@@ -15,9 +15,11 @@
 \usepackage[MScThesis,lablogo]{EPFLreport}
 \usepackage{amsmath,amssymb}
 \usepackage[utf8]{inputenc}
-\usepackage{csquotes}
 %\usepackage{natbib}
 \usepackage{xspace}
+\usepackage{graphicx}
+\usepackage{todonotes}
+\usepackage[autostyle=try, english=american]{csquotes}
 
 \title{Learning Interpretable Abstract Representations in Reinforcement Learning Environments via Model Sparsity}
 \author{Sergei Volodin}
@@ -47,6 +49,7 @@ I thank my parents for the support in my studies, Switzerland and EPFL in partic
     \makeacks
 
 \begin{abstract}
+
 "I choose this restaurant because they have vegan sandwiches" could be a typical explanation we would expect from a human. However, current Reinforcement Learning (RL) techniques are not able to provide such explanations, when trained on raw pixels.
 RL for state-of-the-art benchmark environments are based on neural networks, which lack interpretability, because of the very factor that makes them so versatile -- they have many parameters and intermediate representations.
 The best result that could be obtained are two rollouts from the internal model of the agent, showing that one policy would result in a higher reward than the another policy. These rollouts would be high-dimensional objects that are hard to compare together or reason about.
@@ -294,7 +297,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     Therefore, the derivatives for this smooth function are:
     $$
     z'_{p,p_i}=\exp(g_{i1}-g_{i2})+o(p),\,p\to 0,\,z'_{p,p_i}=\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
-    $$s
+    $$
 
     For the point $p=0.5$, $z'_{p,p_i}=4e^{g_1+g_2}/(e^{g_1}+e^{g_2})^2$
 
@@ -311,6 +314,8 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 %    z'_{p,p_i}=1+o(p),\,p\to 0,\,z'_{p, p_i}=1+o(1-p),\,p\to 1
 %    $$
 
+    \todo{Explain what happens here and plot a chart.}
+
     The standard implementation takes logits $h=\log p_i$ as input. Since $\partial z/\partial p=\partial z/\partial h\cdot \partial h/\partial p$, and $\partial h/\partial p=1/p$ we compute $\partial z/\partial h=p+o(p^2),p\to 0$. Therefore, the derivative w.r.t. the logits {\em vanishes} as we approach $0$ or $1$ in probability.
 
     \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
@@ -323,8 +328,19 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
 
 \section{The AIXI framework and its connection to our work}
+In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework, which gives the same guarantee for RL.
+
 \subsection{Solomonoff induction}
+We consider the class of all computable infinite sequences of binary strings $\{\mu\}$. The ground truth data distribution is an element of this class. We are given symbols $x_t\in \{0,1\}$ one-by-one, and the task is to predict the next symbol given the previous ones. We apply the Bayesian approach: given a prior $\nu(\mu)\in[0,1]$ over the sequences $\mu$, we would like to find the posterior $\nu|(x_1,...,x_t)$ over the sequences given the observed data $x_1,...,x_t$.
+
+{\bf Possible priors [cite Le].} Since each $\mu$ is computable, we consider the Kolmogorov complexity $K(\mu)$ of programs generating sequences $\mu$, which is the length of the shortest program for a Turing machine that generates $\mu$. Now, for a particular $n$, consider the programs with $K(\mu)=n$. Since the total number of such shortest programs is exponential [?], the prior has to decay as $\nu(\mu)\leq 2^{-\alpha K(\mu)+\beta}$. This means that the prior (asymptotically) should favor simple programs.
+
+If we set $\nu(\mu)=C\cdot2^{-K(\mu)}$, we obtain
+
 \subsection{The AIXI framework}
+If we apply this framework to the Reinforcement Learning problem, we obtain the AIXI framework by Marcus Hutter. This framework implies that we do Bayesian inference with the prior of selecting the simplest model.
+
+While in theory, selecting the simple model is inevitble for the series to converge, in practice, models' complexities are limited. Therefore, we are free to choose any prior. Selecting simpler models benefits interpretability.
 
 The background section introduces the necessary background to understand your
 work. This is not necessarily related work but technologies and dependencies
@@ -336,6 +352,25 @@ This section is usually 3-5 pages.
 %%%%%%%%%%%%%%%%
 \chapter{Design}
 %%%%%%%%%%%%%%%%
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/step_spaces}
+    \caption{Step representations used in the project. At the bottom, the environment's Game Engine (GE) generates the next state $s_{t+1}$ given the previous state $s_t$ and the action $a_t$. Next, the states are encoded into high-dimensional observations $o_t=E(s_t)$. The true state dynamics $s_t$, as well as the encoder $E$ are unknown. The proposed methods finds a feature space $f_t=D(o_t)$ by applying the decoder $D$. The dynamics in the space of features is modeled by the function $M_f$.}
+    \label{fig:step_spaces}
+\end{figure}
+
+
+We start from the model-based Reinforcement learning setup with a decoder and a reconstructor. We would like to obtain the feature space in which the model $M_f$ becomes most simple. Mathematically, we are searching for the decoder function such that:
+$$
+ff
+$$
+
+
+The total model can be obtained as a composition:
+$$
+\hat{o}_{t+1}=M_o(o_t,a_t)=R(M_f(D(o_t), ))
+$$
+
 
 Introduce and discuss the design decisions that you made during this project.
 Highlight why individual decisions are important and/or necessary. Discuss
@@ -369,6 +404,32 @@ This section is usually 5-10 pages.
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
 %%%%%%%%%%%%%%%%%%%%%%
+
+Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
+
+\cite{Battaglia2018} introduces Graph Neural Networks (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
+
+\cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
+
+Libraries: pytorch-geometric, graph-nets from DeepMind
+
+\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees.
+
+\cite{Zambaldi2018} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to. Similar technique can be seen in \cite{Hahne2019} to solve visual reasoning tasks (similar to IQ tests)
+
+\cite{Xie2020} introduce latent variables into the learned linear causal models using statistical tests.
+
+\cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
+
+\cite{VanDenOord2018} fit a neural autoregressive model. The paper suggests that fitting many-step future predictions is of utter importance, since only in such predictions the model is tested for "true" generalization of high-level features. The paper also suggests that MSE or other losses commonly used for reconstruction are not optimal, and generative models are hard to train. As an alternative, the paper suggests optimizing for the mutual information between the latent code and the original inputs. The model predicts the log-odds ratio for an offset $k$ and input up to time $t$ as $f_k(x_{t+k},c_t)\sim \frac{p(x_{t+k}|c_t)}{p(x_{t+k})}$ with a model $f_k(x_{t+k}, c_t)=e^{D(x_{t+k})^TW_kc_t}$. This model is trained using the InfoNCE loss (noise-contrastive estimation) $L=-\mathbb E_X\log\frac{f_k(x_{t+k}, c_t)}{\sum_{x_j\in X}f_k(x_j,c_t)}$. The dataset $X$ consists of one sample $x\sim p(x_{t+k}|c_t)$ (ground truth) and negative samples $x\sim p(x_{t+k})$ (the prior).
+
+When using probabilistic inference with gradient descent-like algorithms, we need to differentiate through a sampled value $X$ with respect to the sampled parameters $X\sim X(\theta)$. For discrete distributions, reparametrization trick would not work directly, as the gradient of argmax is zero a.s. One version is the log-likelihood trick, but it results in high variance. Another approach is to replace the hard discrete distribution with a soft one, one version of which is the Concrete distribution \cite{Maddison2017}.
+
+\cite{kalainathan2018structural, ng2019masked} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). \cite{Brouillard2020} extend this approach to modelling interventions.
+
+\cite{Fallah2020} use dictionary learning with an autoencoder.
+
+\cite{kipf2019contrastive} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models.
 
 The related work section covers closely related work. Here you can highlight
 the related work, how it solved the problem, and why it solved a different
@@ -519,31 +580,7 @@ Architecture improvements: model at each layer of the decoder for a faster fit, 
 
 \section{Literature review}
 
-Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
 
-\cite{Battaglia2018} introduces Graph Neural Networks (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
-
-\cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
-
-Libraries: pytorch-geometric, graph-nets from DeepMind
-
-\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees.
-
-\cite{Zambaldi2018} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to. Similar technique can be seen in \cite{Hahne2019} to solve visual reasoning tasks (similar to IQ tests)
-
-\cite{Xie2020} introduce latent variables into the learned linear causal models using statistical tests.
-
-\cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
-
-\cite{VanDenOord2018} fit a neural autoregressive model. The paper suggests that fitting many-step future predictions is of utter importance, since only in such predictions the model is tested for "true" generalization of high-level features. The paper also suggests that MSE or other losses commonly used for reconstruction are not optimal, and generative models are hard to train. As an alternative, the paper suggests optimizing for the mutual information between the latent code and the original inputs. The model predicts the log-odds ratio for an offset $k$ and input up to time $t$ as $f_k(x_{t+k},c_t)\sim \frac{p(x_{t+k}|c_t)}{p(x_{t+k})}$ with a model $f_k(x_{t+k}, c_t)=e^{D(x_{t+k})^TW_kc_t}$. This model is trained using the InfoNCE loss (noise-contrastive estimation) $L=-\mathbb E_X\log\frac{f_k(x_{t+k}, c_t)}{\sum_{x_j\in X}f_k(x_j,c_t)}$. The dataset $X$ consists of one sample $x\sim p(x_{t+k}|c_t)$ (ground truth) and negative samples $x\sim p(x_{t+k})$ (the prior).
-
-When using probabilistic inference with gradient descent-like algorithms, we need to differentiate through a sampled value $X$ with respect to the sampled parameters $X\sim X(\theta)$. For discrete distributions, reparametrization trick would not work directly, as the gradient of argmax is zero a.s. One version is the log-likelihood trick, but it results in high variance. Another approach is to replace the hard discrete distribution with a soft one, one version of which is the Concrete distribution \cite{Maddison2017}.
-
-\cite{kalainathan2018structural, ng2019masked} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). \cite{Brouillard2020} extend this approach to modelling interventions.
-
-\cite{Fallah2020} use dictionary learning with an autoencoder.
-
-\cite{kipf2019contrastive} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models.
 
 \section{Model learning for a fixed policy}
 The problem of learning a model is formulated as follows. Given a deterministic RL environment $\mu$ and a policy $\pi$, we want to find a function computing the next observation: $o_{t+1}=M_o(o_t, a_t)$. Additionally, we would like to learn the reward and the termination ("done"): $r_t=M_r(o_t, a_t)$, $d_t=M_d(o_t, a_t)$. Since observations are high-dimensional, we require the model to be represented as a composition of a decoder, a model in the feature space, and a reconstructor: $o_{t+1}=R(M_f(D(o_t), a_t))$. If we denote $f_t=D(o_t)$, we can additionally require $D(o_{t+1})\approx M_f(f_t, a_t)$. In this case, the function $M_f$ is a {\em model in feature space}. If we additionally require $R(D(o_t))\approx o_t$, the function $R$ becomes the inverse for the decoder.
