@@ -436,6 +436,8 @@ First, we give a detailed example of why feature sparsity does not imply interpr
     However, this coding is not sparse -- in fact, the values of the features are never $0$. This shows that feature sparsity is not necessary for interpretability.
 \end{example}
 
+To be fair, sparse features do help interpretability in case if an observation can contain a limited number of objects, one at a time. For example, an observation either contains an enemy, or the health bar. However, these two variables then can be replaced with one and modeled with our framework. We note that our approach also has flaws (see the failure modes below), and the question of defining human "simplicity prior" mathematically in all cases remains open.
+
 In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
 
 We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
@@ -572,6 +574,7 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
 \end{example}
 
 \begin{example}{(Discrete-valued variables)}
+
 \end{example}
 
 \begin{example}
@@ -661,8 +664,40 @@ $$
 L_{sparse}=\mathbb E K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$
 
-{\bf Exploration}. In case if for some of the component, $P_{xx'}=0$, that feature is {\em never} selected and is never active.
+{\bf Ranges of probabilities and exploration.} In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
 
+However, we would like to have the case $P_{xx'}=1$ possible in our system. Indeed the difference in losses $L_{fit}\big|_{B_{xx'}=0}$ and $L_{fit}\big|_{B_{xx'}=1}$ can be drastic, and in the worst case we have $L_{fit}\big|_{B_{xx'}=0}-L_{fit}\big|_{B_{xx'}=1}=f+2$ (without using the important feature, each output feature can only be predicted as a constant, and the same for reward and done). Therefore, if $p_{\max}<1$, we have $L_{fit}=(f+2)(1-p_{\max})$, and the loss will no go lower than this value.
+
+Another issue that $p_{\max}<1$ yields is duplicated features. Indeed, if an important feature is only given with probability $p_{\max}<1$ and $\varepsilon=1-p_{\max}$, it would be beneficial to decrease the loss $L_{fit}$ to duplicate this feature (the decoder uses a spare feature to output the same value). Then, the model would {\em not} receive the value for an important feature with probability $\varepsilon^2$, instead of $\varepsilon$. This decreases the loss $\varepsilon$ times. Therefore, training the model with $p_{\max}<1$ would likely lead to feature duplication.
+
+In contrast, $p_{\min}>0$ would not have significant effects on the loss, as adding a non-important feature cannot improve the loss significantly. Therefore, it is safe to set a threshold on the lower value of the probabilities. This would help exploration.
+
+\begin{example}
+    Let's consider different cases, assuming that the model was fitted to convergence on a set of features with a fixed tensor of probabilities. Consider the case of $2$ input and output features, with features being equal and having a deterministic relationship (from input to output).
+    \begin{enumerate}
+        \item $p=0$ for all pairs. In this case, no features are given to the model, and the model will learn to predict the mean of the output features. The causal graph is empty. The loss is equal to $2$ (since standard deviation for each feature is $1$ w.l.o.g. because of the relative error).
+        \item $p=1$ for all pairs. In this case, the model uses all features, and the error is minimal. The loss is $0$.
+        \item $p=0.5$ for all pairs. In this case, the model will try to extract as much information as possible when the feature is present. Essentially, with probability $0.25$, the model will give the mean output feature, and with probability $0.75$ it will use either one of the input features, or both of them. The loss is equal to $2\times 0.25=0.5$.
+        \item In the general case $p\in [0, 1]$, the model has an error of $2$ with probability $(1-p)^2$ and a loss of $0$ with probability $1-(1-p)^2$. The expectation is $2(1-p)^2$.
+    \end{enumerate}
+
+    Now consider a similar case when the mutual information between features is $0$ (they are independent). In this case, for a probability $p$, we have the loss being $2$ with probability $(1-p)^2$, a loss of $1$ with probability $2p(1-p)$ and a loss of $0$ with probability $p^2$. The expectation is $2(1-p)^2+2p(1-p)=2-4p+2p=2-2p=2(1-p)$. This loss is higher than for the case of equal features for all $p\in (0,1)$.
+
+    To avoid a case when there are no samples with $\xi=1$ (with low $p$), we limit the range of $p$ to be $p\geq p_{\min}=0.01=1\%$. Setting this value higher results in feature duplicates, as the model tries to predict the outputs even from partially present features. A value of $1\%$ with a batch size of $T=5000$ gives $50$ samples with $\xi=1$ in the worse case (on average), which is empirically sufficient to turn features on. To turn the features off, we introduce a sparsity regularizer.
+\end{example}
+
+{\bf Non-stationarity and adding the mask to the model.} Consider the data that the functions $F_x$ are fit on, when the probabilities $P$ change:
+$$
+fa_t\odot B_x\to x_{t+1}
+$$
+
+Since $B_x$ depends on $P_x$, the dataset clearly depends on $P$. Since the probabilities change during the training (a feature could be turned on and off repeatedly in search of the best graph), the problem becomes highly non-stationary -- effectively, the model has to re-relearn to rely on the new set of features that it did not see before. In addition, in case of discrete features, the model might not be able to distinguish between the case where $fa_t=0$ or $B_x=0$.
+It may happen that in case if $f_1=0$ is given, the model should rely on $f_1=0$. However, if a feature is not given, the model should rely on another, more noisy feature.
+However, an input of $0$ does not allow to distinguish between these cases, and the model would be forced to "guess" (output the expected value between the two datasets).
+A solution for this is to feed the mask to the model as well:
+$$
+\hat{x}=F_x(fa_t\odot B_x,B_x)
+$$
 
 {\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together: $L_{rec}$, $L_{fit, feat}$, $L_{fit, obs}$, $L_{sparse}$. Ideally, we would like to find a point which jointly minimizes all of these losses. In the case of a deterministic environment, it is possible to achieve all of the losses being $0$, $L_{sparse}$ having the minimal possible discrete value.
 
