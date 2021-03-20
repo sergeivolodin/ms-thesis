@@ -443,6 +443,8 @@ First, we give a detailed example of why feature sparsity does not imply interpr
 
 To be fair, sparse features do help interpretability in case if an observation can contain a limited number of objects, one at a time. For example, an observation either contains an enemy, or the health bar. However, these two variables then can be replaced with one and modeled with our framework. We note that our approach also has flaws (see the failure modes below), and the question of defining human "simplicity prior" mathematically in all cases remains open.
 
+In addition, we must clarify the following point. In what follows, we will induce sparsity on the feature vectors, but in a very specific way. First, we consider sparse feature vectors (with some components zeroed out) as an {\em input to the model predicting the same features}, i.e. a dynamics model. The model takes only certain features as the input. Importantly, the sparsity mask is different for predicting different features, and is not reducible to the sparsity of the feature vector as a whole. In fact, for all of the environments that we use, the feature vector is not sparse as a whole.
+
 In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
 
 \subsection{Sparse fan-in models sometimes are sufficient for interpretability, and usually necessary}
