@@ -13,15 +13,29 @@
 \documentclass[a4paper,11pt,oneside]{report}
 % Options: MScThesis, BScThesis, MScProject, BScProject
 \usepackage[MScThesis,lablogo]{EPFLreport}
-\usepackage{amsmath,amssymb}
+\usepackage{amsmath,amssymb,amsthm} % math typesetting
+\usepackage{bbm}
+
+%\usepackage{dsfont} % for indicator function
 \usepackage[utf8]{inputenc}
-%\usepackage{natbib}
-\usepackage{xspace}
-\usepackage{graphicx}
-\usepackage{todonotes}
+%\usepackage{natbib} % how to make it work???
+\usepackage{xspace} % possibly add space after something
+\usepackage{hyperref} % autoref and WEB URLs
+\usepackage{graphicx} % figures
+\usepackage{todonotes} % notes used when writing the draft
 \usepackage[autostyle=try, english=american]{csquotes}
 
-\title{Learning Interpretable Abstract Representations in Reinforcement Learning Environments via Model Sparsity}
+
+\newtheorem{example}{Example}[section]
+
+
+\newcommand{\sysname}{CauseOccam\xspace}
+% CausalOccam
+% SimpleCause
+% BayesianCause
+% TLDRCause
+
+\title{\sysname: Learning Interpretable Abstract Representations in Reinforcement Learning Environments via Model Sparsity}
 \author{Sergei Volodin}
 \supervisor{Dr. Johanni Brea}
 \adviser{Prof. Wulfram Gerstner}
@@ -64,7 +78,7 @@ One way to define simplicity of causal explanations is the sparsity of the Causa
 
 In addition, sparse causal models describing the latent dynamics are hypothesized by Yoshua Bengio to be crucial in the functioning of human consciousness, since human explanations have only few important causes.
 
-In this thesis, we propose a framework for model-based Reinforcement Learning where the model is regularized for simplicity in terms of sparsity of the causal graph it corresponds to.
+In this thesis, we propose a framework \sysname for model-based Reinforcement Learning where the model is regularized for simplicity in terms of sparsity of the causal graph it corresponds to.
 The framework contains a learned mapping from observations to latent features, and a model predicting latent features at the next time-steps given ones from the current time-step. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves.
 We test this framework on benchmark environments with non-trivial high-dimensional dynamics and show that it can uncover the causal graph with the fewest edges in the latent space.
 
@@ -75,6 +89,7 @@ For the future work, the causal graph can be used for easier grounding on a set 
 
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Introduction}
+\label{ch:intro}
 %%%%%%%%%%%%%%%%%%%%%%
 
 Reinforcement learning is a general paradigm in Artificial Intelligence (AI) that considers two entities: an environment and an agent which interact with each other over multiple time-steps. The agent takes actions in the environment, and the environment gives the agent an observation representing the state of the environment, and a reward. The goal of the agent is to execute actions that lead to highest total reward during the interaction.
@@ -126,7 +141,7 @@ The main challenge when implementing our approach is combining all the requireme
 
 We design a simple toy environment to illustrate learning of sparse causal models from high-dimensional data, and show that our approach successfully obtains the minimal causal graph on it. Additionally, we illustrate the same positive behavior on a grid-world environment. Surprisingly, the method find a simpler (but correct) graph for the toy environment than the authors anticipated.
 
-{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. We briefly mention the implications of our work on the Integrated Information Theory of consciousness.
+{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem with our approach \sysname. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. We briefly mention the implications of our work on the Integrated Information Theory of consciousness.
 
 The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
@@ -136,24 +151,32 @@ Third, out prior to have the simplest model could make the agent require less da
 Next, having a disentangled representation with independent mechanisms allows to reuse components in the model, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
 Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (aprori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
 
+{\bf Source code.} The source code for the project is available at
+\begin{center}
+\href{https://github.com/sergeivolodin/causality-disentanglement-rl}{github.com/sergeivolodin/causality-disentanglement-rl}
+\end{center}
+
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Background}
+\label{ch:background}
 %%%%%%%%%%%%%%%%%%%%
 
 In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity, methods for computing gradients for discrete variables, the Occam's razor in Solomonoff induction (supervised learning) and in the AIXI framework (Reinforcement Learning).
 
-We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$.
+We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. The specific cases that we use are the $1$-norm $\|x\|_1=\sum\limits_{i=1}^n|x_i|$, and the $0$-norm $\|x\|_0=\sum\limits_{i=1}^n\mathbb 1_{x_i\neq 0}$ -- number of non-zero components in $x$.
+Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$.
 
 \section{Reinforcement Learning}
+\label{sec:rl}
 The standard Reinforcement Learning framework consists of an {\em environment} $\mu$ and an {\em agent} $\pi$. The environment and the agent interact during an {\em episode} consisting of $T<\infty$ discrete time-steps. First, the agent receives an {\em observation} $o_1\in O$ from the environment, where $O$ is the {\em observation space}. Next, the agent executes an {\em action} $a_1\in A$ where $A$ is the {\em action space}. Next, the environment gives the agent a) a scalar reward $r_1\in R$ where $R\subseteq \mathbb R$ is the {\em reward space}, and b) the next observation $o_2\in O$. Next, either the environment terminates the interaction, in this case, $T=2$, or the cycle repeats (the agent executes an action, etc). We introduce the termination variable $d_t$ ("done") as $d_t=0$, $t<T$ and $d_T=1$.
 
 A {\em history} (or an {\em episode}, or a {\em rollout}) of the interaction up to time-step $\tau$ consists of all the variables in the interaction in chronological order: $h_{\tau}=(o_1, a_1, r_1, o_2, ..., a_{\tau-1}, r_{\tau}, o_{\tau})$.
 
 For each time-step, the following holds: $(o_t, r_t)\sim \mu(a_{t-1}, h_{t-1})$ and $a_t\sim \pi(h_{t})$. This means that the observation and the reward at step $t$ is defined by the environment $\mu$ given the previous history, and the action at the step $t$ is defined by the agent given the previous history.
 
-We say that $h_T\sim (\mu, \pi)$ if the history $h_T$ was obtained from an interaction between the environment $\mu$ and the agent $\pi$.
+We say that $h_T\sim (\mu\leftrightarrow\pi)$ if the history $h_T$ was obtained from an interaction between the environment $\mu$ and the agent $\pi$.
 
-The {\em value} is defined as the discounted sum of rewards: $V(h_T)=\sum\limits_{t=1}^T\gamma^t r_t$, where $\gamma\in[0, 1]$ is the {\em discount factor}. The goal of the agent is to find such $\pi$ that $\mathbb E_{h_T\sim (\mu, \pi)} V$ is maximized.
+The {\em value} is defined as the discounted sum of rewards: $V(h_T)=\sum\limits_{t=1}^T\gamma^t r_t$, where $\gamma\in[0, 1]$ is the {\em discount factor}. The goal of the agent is to find such $\pi$ that $\mathbb E_{h_T\sim (\mu\leftrightarrow \pi)} V$ is maximized.
 
 In our project, $A$ is discrete {\em discrete action}, such as $A=\{\mbox{up},\,\mbox{down},\,\mbox{left},\,\mbox{right}\}$\footnote{the model supports real-valued actions, they would be treated the same way as real-valued features without any difference}, and $O=\mathbb R^o$, where $o$ is the dimension of each observation. For example, $o=210\times 160\times 3$ for 210 rows, 160 columns and 3 RGB channels for an Atari observation, or $o=128$ for the $128$ RAM components in the RAM version. The reward space $R$ is bounded: $R=[r_{\min}, r_{\max}]$.
 
@@ -170,6 +193,7 @@ In what follows, we consider Markov deterministic environments with deterministi
 
 
 \section{Model-based reinforcement learning}
+\label{sec:mbrl}
 Model-based reinforcement learning agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$:
 $$
 \hat{o}_{t+1}=M_o(o_t, a_t)
@@ -190,6 +214,7 @@ Another technique prevents predicting high-dimensional observations altogether b
 $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
 \section{Causal modeling and deep causal modeling}
+\label{sec:causal}
 In a nutshell, causal models are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
 
 More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$.
@@ -202,6 +227,7 @@ More generally, we set $\delta(PA_i,j)=\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i\setmi
 Given a threshold $\varepsilon>0$, if $\delta(PA_i,j)<\varepsilon$, we could exclude $j$ from $PA_i$, and this would only worsen the prediction quality by $\varepsilon$.
 
 \subsection{Neural Granger Causality}
+\label{subsec:neural_granger}
 In order to find $F_i$ in practice, we model them with neural networks with input size $f$ (including all features). $F_i\colon \mathbb R^{f}\to\mathbb R$. In order to account for $PA_i$, we pre-multiply the input to each function $F_i$ by a binary mask $B_i\in\{0,1\}^f$:
 $$
 \hat{f}_i^{t+1}=F_i(f^t\odot B_i)
@@ -216,6 +242,7 @@ $$
 The gradient with respect to the parameters of $F_i$ is computed in standard way, and we present methods to enforce sparsity of $B_i$ in the next section.
 
 \section{Enforcing sparsity in deep architectures}
+\label{sec:sparse_deep}
 Suppose that we are fitting a loss function which depends on a binary variable, like in the previous section:
 $$
 \mathcal L=\frac{1}{T}\sum\limits_{t=1}^T(y_t-F(x_t\odot B))\to\min\limits_{F,B}
@@ -232,6 +259,7 @@ We can use gradient descent on $B$ if we relax the problem. There are several me
 \end{enumerate}
 
 \section{Methods to compute gradients of discrete variables}
+\label{sec:grad_discrete}
 This section describes standard methods to compute gradients with respect to a binary variable. We have the same setup as in the previous section.
 
 We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probability $P_i$, and, therefore, the distribution $Be(P_i(\theta_i))$.
@@ -328,9 +356,11 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
 
 \section{The AIXI framework and its connection to our work}
+\label{sec:solomonoff_aixi}
 In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework, which gives the same guarantee for RL.
 
 \subsection{Solomonoff induction}
+\label{subsec:solomonoff}
 We consider the class of all computable infinite sequences of binary strings $\{\mu\}$. The ground truth data distribution is an element of this class. We are given symbols $x_t\in \{0,1\}$ one-by-one, and the task is to predict the next symbol given the previous ones. We apply the Bayesian approach: given a prior $\nu(\mu)\in[0,1]$ over the sequences $\mu$, we would like to find the posterior $\nu|(x_1,...,x_t)$ over the sequences given the observed data $x_1,...,x_t$.
 
 {\bf Possible priors [cite Le].} Since each $\mu$ is computable, we consider the Kolmogorov complexity $K(\mu)$ of programs generating sequences $\mu$, which is the length of the shortest program for a Turing machine that generates $\mu$. Now, for a particular $n$, consider the programs with $K(\mu)=n$. Since the total number of such shortest programs is exponential [?], the prior has to decay as $\nu(\mu)\leq 2^{-\alpha K(\mu)+\beta}$. This means that the prior (asymptotically) should favor simple programs.
@@ -338,6 +368,7 @@ We consider the class of all computable infinite sequences of binary strings $\{
 If we set $\nu(\mu)=C\cdot2^{-K(\mu)}$, we obtain
 
 \subsection{The AIXI framework}
+\label{subsec:aixi}
 If we apply this framework to the Reinforcement Learning problem, we obtain the AIXI framework by Marcus Hutter. This framework implies that we do Bayesian inference with the prior of selecting the simplest model.
 
 While in theory, selecting the simple model is inevitble for the series to converge, in practice, models' complexities are limited. Therefore, we are free to choose any prior. Selecting simpler models benefits interpretability.
@@ -350,7 +381,8 @@ This section is usually 3-5 pages.
 
 
 %%%%%%%%%%%%%%%%
-\chapter{Design}
+\chapter{Design of \sysname}
+\label{ch:design}
 %%%%%%%%%%%%%%%%
 \begin{figure}[h]
     \centering
@@ -360,10 +392,61 @@ This section is usually 3-5 pages.
 \end{figure}
 
 
-We start from the model-based Reinforcement learning setup with a decoder and a reconstructor. We would like to obtain the feature space in which the model $M_f$ becomes most simple. Mathematically, we are searching for the decoder function such that:
+We have an agent $\pi$ interacting with the environment $\mu$. We start from the model-based Reinforcement learning setup with a decoder and a reconstructor. We would like to obtain the feature space in which the model $M_f$ becomes most simple in terms of a metric $K$. This is the Bayesian approach: with the sparsity prior on the model, we would like to find the posterior distribution over models given the data from the environment.
+
+We consider a model of the environment $\hat{f}_{t+1}=M_f(f_t,a_t)$ in the sense of \autoref{sec:mbrl}. Additionally, we would like some components of $f_t$ and $a_t$ to be ignored when predicting some component of the whole feature vector $f_{i,t+1}$. We view the model $M_f=[M_f^1,...,M_f^f]$ (splitted into scalar functions predicting each feature) as a causal model in the sense of \autoref{sec:causal}. The set of variables of this causal model contains all features, all actions, and additionally the variable $r$ for the reward and the variable $d$ for the "done" (see \autoref{sec:rl} for definitions):
 $$
-ff
+\begin{array}{lcl}
+X&=&\{f_1,...,f_f,a_1,...,a_a,r,d\},\\
+X_{in}&=&\{f_1,...,f_f,a_1,...,a_a\}\\
+X_{out}&=&\{f_1,...,f_f,r,d\}
+\end{array}
 $$
+
+The variables $X_{in}\subset X$ are the input (ones used for prediction), and the variables $X_{out}\subset X$ are the output (ones being predicted).
+We would like to predict the next features, as well as the reward $r$ and the done $d$ at time-step $t+1$ given features and actions at the time-step $t$. The prediction of the model for a variable $x$ consists of pre-multiplying the input features (variables $f_t$ and $a_t$, written as a vector in what follows as $fa_t=[f_t,a_t]\in\mathbb R^{f+a}$) with the binary mask $B_x$, to select the input features, and then applying the SCM function $F_x$: $x_{t+1}=F_x(fa_t\odot B_x)$, $x\in X_{out}$.
+$$
+\begin{array}{lcllrllr}
+\hat{f}_{t+1}^1&=&M_f^1(f_t,a_t)&=&F_{f_1}(&[f_t,a_t]&\odot B_{f_1}&)\\
+&...&\\
+\hat{f}_{t+1}^f&=&M_f^f(f_t,a_t)&=&F_{f_f}(&[f_t,a_t]&\odot B_{f_f}&)\\
+\hat{r}_{t+1}&=&M_f^r(f_t,a_t)&=&F_{r}(&[f_t,a_t]&\odot B_{r}&)\\
+\hat{d}_{t+1}&=&M_f^d(f_t,a_t)&=&F_{d}(&[f_t,a_t]&\odot B_{d}&)\\
+\end{array}
+$$
+
+We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
+$$
+K'(W)=\sum\limits_{x\in X_{in}}\|B_x\|_0
+$$
+Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower.}. The second reason is there by design. Namely,
+This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. This means that it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
+
+\begin{example}{Too complex model}
+\end{example}
+
+The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
+
+
+Mathematically, we are searching for the decoder function such that:
+\begin{equation}
+\label{eq:sparse_rl_problem}
+\begin{aligned}
+    \min_{D,M_f,R} \quad & K(M_f)\\
+    \textrm{s.t.} \quad & L_{rec}+L_{fit}\leq\varepsilon \\
+\end{aligned}
+\end{equation}
+
+Here, there are the following losses used:
+\begin{enumerate}
+\item The sparsity loss with $M_f^{sw}$ being the switch parameters from \autoref{sec:sparse_deep}, \autoref{sec:grad_discrete} which
+\begin{equation}
+\label{eq:sparsity}
+K(M_f)=\|M_f^{sw}\|_1
+\end{equation}
+\item The reconstruction loss:
+$$L_{rec}=\mathbb E_{h\sim (\pi\leftrightarrow\pi)}\frac{1}{T-1}\sum\limits_{t=1}^{T-1}\rho(R(D(o_t)),o_t)$$
+\end{enumerate}
 
 
 The total model can be obtained as a composition:
@@ -381,6 +464,7 @@ This section is usually 5-10 pages.
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Implementation}
+\label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 The implementation covers some of the implementation details of your project.
@@ -392,6 +476,7 @@ This section is usually 3-5 pages.
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Evaluation}
+\label{ch:evaluation}
 %%%%%%%%%%%%%%%%%%%%
 
 In the evaluation you convince the reader that your design works as intended.
@@ -403,6 +488,7 @@ This section is usually 5-10 pages.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
+\label{ch:related_work}
 %%%%%%%%%%%%%%%%%%%%%%
 
 Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
@@ -443,6 +529,7 @@ This section is usually 3-5 pages.
 
 %%%%%%%%%%%%%%%%%%%%
 \chapter{Conclusion}
+\label{ch:conclusion}
 %%%%%%%%%%%%%%%%%%%%
 
 In the conclusion you repeat the main result and finalize the discussion of
