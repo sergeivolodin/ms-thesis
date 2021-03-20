@@ -736,6 +736,11 @@ L_{fit, m-feat}&=\rho(M_f(Z_{pre}(D(o_t)),a_t), Z_{pre}(D(o_{t+1})));&M_f\circ Z
 \end{array}
 $$
 
+\subsection{NP-hardness in the general case}
+As in the linear case of the semester project, we prove the NP-hardness of finding the most sparse causal graph that fits the data. While it was shown [?] that finding the causal graph without a decoder is not NP-hard, it is if we consider a learned representation as well
+
+\todo{reduction to sparse dictionary learning}
+
 \subsection{Optimization schemes}
 Now, we have a number of losses that we would like to minimize together
 
@@ -940,10 +945,10 @@ If no encoder is applied, the ground-truth graph (without an encoder or a decode
 
 The environment additionally supports rendering observations as images using a low-dimensional digits font, as well as optionally permuting the pixels of the observation to make it hard for humans to play.
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \includegraphics[width=0.7\linewidth]{diagrams/ve5_nodec}
-    \caption{The causal graph for VectorIncrement$(5)$ without a decoder or an encoder. First, each state component determines its own value at the next time-step. Secondly, a corresponding action increments the state component. Finally, all state components affect reward and done, and all but one action affect the reward. This one of 5 possible causal graphs for this environment (one of the actions can be disconnected from the reward node)}
+    \caption{The causal graph for VectorIncrement$(5)$ without a decoder or an encoder. First, each state component determines its own value at the next time-step (black self-loops for $s_i$). Secondly, a corresponding action increments the state component (red line from $a_i$ to $s_i$). Finally, all state components affect reward and done (green lines from $s_i$ to reward and done), and all but one action affect the reward (red lines from $a_i$ to reward). This one of 5 possible causal graphs for this environment (one of the actions can be disconnected from the reward node). The number of edges is equal to $K(G)=24$ (out of $120$), or $K(G)=5n-1$ out of $2n^2+4n$ in the general case of VectorIncrement$(n)$}
     \label{fig:ve5nodec}
 \end{figure}
 
@@ -1024,13 +1029,31 @@ This section is usually 3-5 pages.
 \label{ch:conclusion}
 %%%%%%%%%%%%%%%%%%%%
 
-In the conclusion you repeat the main result and finalize the discussion of
-your project. Mention the core results and why as well as how your system
-advances the status quo.
+We present the first (up to our knowledge) that learns a sparse causal graph of a Reinforcement Learning environment with a learned feature representation. We test our approach on a set of benchmarks and show a success of the proposed approach: it outputs an interpretable causal graph and allows to understand the environment. Using this approach could yield increased interpretability of Reinforcement Learning agents if used together with already existing methods requiring a causal graph as an input.
+
+The main complexity right now is the time to fit a model of the environment, and then adjust the decoder to sparsify the model. Better (more adaptive) training procedures could speed up the convergence and increase the range of applicability of our approach.
 
 \section{Future work}
+A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
+
 
 \section{Sparse causal models and the problem of consciousness}
+The connection to the problem of consciousness stems comes from two directions. First, this work can be seen as an implementation of the \cite{Bengio2017} hypothesis. Indeed, we are learning the most sparse model in the latent space, along with learning the representations. The paper explicitly defines this as one of the components of the consciousness prior.
+
+
+The fact that our approach works (albeit for simple environments) proves the merit of this hypothesis and shows that it could be used to explain consciousness: humans indeed can be learning abstract representations (at least partially by the virtue of) learning a space in which the dynamics becomes simple. For example, it is beneficial to learn a variable "time", because this single variable allows to predict if the sun rises, if the metro is open, or if a predator is likely to be sleeping.
+
+Our learned representations can be used to ground the agent in natural language. Indeed, if we already have learned that there are several abstract concepts in the game such as "number of keys collected" or the "health of the player", it would suffice to only give two sentences associated with the player collecting a key or food. In contrast, a vanilla CNN given the same sentences at the same time would likely associate them with raw pixel state, and a policy network would likely associate them with the current action taken.
+
+In this way, we shed (a bit of) light onto the easy problem of consciousness: the abstract concepts can come {\em before} language, in an unsupervised way, and the first words of language are simply mapped to already existing concepts using Hebbian learning (word and the stimulus occur together). Next, this process could be bootstrapped, since presence of words becomes new variables in the causal model, and the process is repeated, with a more powerful model and a more powerful set of words learned. Asking questions like "what is X?" can be seen as performing interventions on the causal graph: we know that asking "what is X" is likely to result in novel data (a learned way to optimize for an objective), and an $X$ is a novel variable which is still largely unused. Therefore, the agent intervenes setting $\mbox{do}(\mbox{ask 'what is X'})$ and samples data from a novel distribution.
+
+While the grounding technique is known for a long time, my work provides a proof that abstract concepts can be learnt before language from raw pixels, just by optimizing for the inner model simplicity -- a simple and beautiful enough principle to be innate to the brain.
+
+Secondly, I express a hypothesis that a learned representation is crucial when dealing with the Integrated Information Theory. Currently, the theory does not seem to specify at which level of abstraction it should be applied -- at the level of atoms, or at the level of molecules? Or, maybe, at the level of individual electrical components of a computer that we examine? Specifically, it is unclear what should be the "nodes", "factors" or "variables" in the model, the dependencies between which we are to examine to compute the $\varphi$. This leads to the value of $\varphi$ potentially being arbitrarily high, if a bijective transformation is applied before the analysis [epfl paper].
+
+If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in [epfl paper], albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
+
+Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole. However, this claim does not seem to be empirically testable, at least now.
 
 % Appendices are optional
 % \appendix
@@ -1047,6 +1070,7 @@ advances the status quo.
 % \item A self-aware 5-year old
 % \end{itemize}
 
+\chapter{OLD text, to copy-paste and remove}
 \section{Introduction}
 Consciousness prior, AIXI lead to simple or sparse models.
 
