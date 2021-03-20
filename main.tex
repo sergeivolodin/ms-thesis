@@ -497,7 +497,7 @@ While in practice, it would be hard to find such a function with gradient descen
     However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple.
 \end{example}
 
-{\bf "Reusable" decoders and models.} Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
+{\bf "Reusable" decoders and models.} This argument shows a natural setting in which it is not required to count the complexity of the decoder $D$, and of the SCM functions $F_x$. Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
 
 
 {\bf Linear models.} A reasonable questions might occur: would it be possible to use the simplest possible class of models to define functions $F$ -- linear models, and "transfer" all of the non-linear complexity into the decoder? This would be extremely beneficial, as environments would be extremely interpretable in this space. The following example shows that even for one of the simplest RL environments, there is no linear feature space that preserves the dynamics and maps bijectively into observations.
@@ -569,6 +569,27 @@ L_{rec}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)}\rho(R(D(o_t)), o_t|t\in [T])
 \end{equation}
 
 {\bf Model fitting the data.}
+We also would like the model to predict the future time-steps correctly. This can be achieved in one of two ways.
+
+\begin{enumerate}
+    \item Feature-space loss. We penalize the models' features if they deviate from the features predicted by the decoder at the next time-step:
+    \begin{equation}
+    \label{eq:loss_fit_feature}
+    L_{fit,feature}=\mathbb E_{h\sim (\mu\leftrightarrow\pi)|T>1}\rho(M_f(D(o_t), a_t), D(o_{t+1})|t\in [T-1])
+    \end{equation}
+
+    Here, we only consider episodes that last more than $1$ time-step, because otherwise there is no "next" time-step to predict.\footnote{We do not model the "initial state" distribution, because it does not affect model simplicity in terms of $K(B)$, and it does not affect the SCM functions $F_x$, and in this project we are only interested in learning the causal graph.}
+
+    \item Observation space loss. We penalize the model if the {\em reconstructed observation} given the predicted features matches the true next observation:
+
+    \begin{equation}
+    \label{eq:loss_fit_obs_space}
+    L_{fit,observation}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)|T>1}\rho(R(M_f(D(o_t), a_t)), o_{t+1}|t\in [T-1])
+    \end{equation}
+\end{enumerate}
+
+Next, we compare the two approaches. First, if $L_{fit, feature}=0$, it follows that $L_{fit, observation}=0$. Indeed, the reconstruction loss $L_{rec}$ ensures that the next-step features result in correct observations. And $L_{fit, feature}=0$ ensures that the features are predicted correctly.
+
 
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
