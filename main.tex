@@ -145,7 +145,7 @@ The main challenge when implementing our approach is combining all the requireme
 
 We design a simple toy environment to illustrate learning of sparse causal models from high-dimensional data, and show that our approach successfully obtains the minimal causal graph on it. Additionally, we illustrate the same positive behavior on a grid-world environment. Surprisingly, the method find a simpler (but correct) graph for the toy environment than the authors anticipated.
 
-{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem with our approach \sysname. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. We briefly mention the implications of our work on the Integrated Information Theory of consciousness.
+{\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem with our approach \sysname. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. The main difference with respect to existing methods of learning abstractions in RL is that our only prior is the sparsity (simplicity) of the learned model in the latent space. We do not add any additional priors or assumptions on the feature space, on the environment, or on the agent. We briefly mention the implications of our work on the Integrated Information Theory of consciousness.
 
 The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
@@ -562,7 +562,15 @@ These examples show that it is important to set the complexity of the model's ne
 A practical way to choose the measure of complexity is to first fit a model without sparsity constraints, select one with minimal complexity still fitting the data, and then run \sysname.
 
 \section{Optimization problem for \sysname}
-Overall, we would like to obtain a sparse model without loss of fit quality. Our search space consists of continuous parameters for $D,R,F_x$, and discrete parameters $B_x$ for $x\in X_{in}$ (see above).
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/architecture_losses}
+    \caption{The diagram of losses for \sysname. The batch of observations $o_t$ (left) is fed into the {\em decoder} $D$, which outputs {\em features} $f_t$. The next features $f_{t+1}$ are predicted using the model $M$ given the actions $a_t$. The model is regularized with a sparsity constraint $L_{sparse}$, and fit using losses $L_{fit,feat}$ in the feature space (predicting the next features) and in the observation space (predicting the next observation). The model also predicts the additional reward (r) and done (d) features. The reconstruction loss is not shown on this figure. See this section for more details on the losses.}
+    \label{fig:architecture_losses}
+\end{figure}
+
+
+Overall, we would like to obtain a sparse model without loss of fit quality. Our search space consists of continuous parameters for $D,R,F_x$, and discrete parameters $B_x$ for $x\in X_{in}$ (see above). The figure \ref{fig:architecture_losses} shows the trainables and the losses described in this section.
 
 \subsection{Relative mean-squared error loss}
 In order to know how well the model predicts the next state, we use a {\em relative} mean-squared error loss, instead of the standard "absolute" one. Specifically, if the model predicts $\hat{y}_t$, for $t\in[T]$, and the true values are $y_t$, $t\in[T]$, the relative MSE error is defined as:
@@ -729,7 +737,15 @@ L_{fit}\big|_{p:=p^{expl}}=\mathbb E_{B\sim Be(p^{expl})} L_{fit}
 \end{equation}
 
 \subsection{Additional feature transformation ("rotation")}
-During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model. These transforms allow to quickly enable or disable features, or to change the linear combination of them:
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/architecture_rotation}
+    \caption{Two additional linear feature transformations (purple) applied before and after the model $M$ in order to speed up the convergence. The reconstruction loss path (dotted) bypasses the additional transformations. See \autoref{fig:architecture_losses} for the full description of the components}
+    \label{fig:architecture_rotation}
+\end{figure}
+
+
+During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model (see Figure \ref{fig:architecture_rotation}). These transforms allow to quickly enable or disable features, or to change the linear combination of them:
 $$
 \begin{array}{clll}
 L_{fit, obs}&=\rho(R(Z_{post}(M_f(Z_{pre}(D(o_t)),a_t))), o_{t+1});& R\circ Z_{post}\circ M_f \circ Z_{pre}\circ D&\mapsto o_{t+1},\\
@@ -744,7 +760,7 @@ As in the linear case of the semester project, we prove the NP-hardness of findi
 \todo{reduction to sparse dictionary learning}
 
 \subsection{Optimization schemes}
-Now, we have a number of losses that we would like to minimize together
+Now, we have a number of losses (see Figure \ref{fig:architecture_losses} for a diagram of all components) that we would like to minimize together
 
 \begin{equation}
 \label{eq:all_losses}
@@ -1037,6 +1053,8 @@ The main complexity right now is the time to fit a model of the environment, and
 
 \section{Future work}
 A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
+
+Combining the abstract causal concept discovery with doing interventions using policies\cite{Volodin2020} using an RL agent could yield more structured exploration, and, thus, faster convergence time.
 
 
 \section{Sparse causal models and the problem of consciousness}
