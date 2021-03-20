@@ -715,6 +715,15 @@ $$
 L_{fit}\big|_{p:=p^{expl}}=\mathbb E_{B\sim Be(p^{expl})} L_{fit}
 \end{equation}
 
+{\bf Additional feature transformation ("rotation").} During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model. These transforms allow to quickly enable or disable features, or to change the linear combination of them:
+$$
+\begin{array}{clll}
+L_{fit, obs}&=\rho(R(Z_{post}(M_f(Z_{pre}(D(o_t)),a_t))), o_{t+1});& R\circ Z_{post}\circ M_f \circ Z_{pre}\circ D&\mapsto o_{t+1},\\
+L_{fit, feat}&=\rho(Z_{post}(M_f(Z_{pre}(D(o_t)),a_t)), D(o_{t+1}));&Z_{post}\circ M_f\circ Z_{pre}\circ D&\mapsto Do_{t+1},\\
+L_{fit, m-feat}&=\rho(M_f(Z_{pre}(D(o_t)),a_t), Z_{pre}(D(o_{t+1})));&M_f\circ Z_{pre}\circ D&\mapsto Z_{pre}\circ Do_{t+1}.\\
+\end{array}
+$$
+
 {\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together
 
 \begin{equation}
@@ -754,7 +763,6 @@ K(M_f)=\|M_f^{sw}\|_1
 $$L_{rec}=\mathbb E_{h\sim (\pi\leftrightarrow\pi)}\frac{1}{T-1}\sum\limits_{t=1}^{T-1}\rho(R(D(o_t)),o_t)$$
 \end{enumerate}
 
-{\bf Metrics.} In or
 
 
 Introduce and discuss the design decisions that you made during this project.
@@ -769,7 +777,22 @@ This section is usually 5-10 pages.
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-Separate networks, custom gradient for gumbel, gin configuration, modularity, lagrange exponent/square, custom exponential "annealing"
+{\bf Initialization.} We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We this method to initializing with all zeros, all ones, or a random initialization in the next section
+
+{\bf Metrics.} In order to assess the quality of the solution, we track the following quantities:
+\begin{itemize}
+    \item Sparsity gap. We compute $L_{fit}$ with the current mask $B\sim Be(P)$, as well as with a fully-enabled mask (or the complete causal graph) $B_{xx'}=1$. This gives losses $L_p=L_{fit}^{p}$ and $L_{full}=L_{fit}^{p:=1}$.
+
+    Now, we define $\Delta^{add}_{sparse}=L_p-L_{full}$. This quantity is positive if the model is fit well (adding features should not worsen the prediction quality). The value of this metric shows how well feature selection has worked: if the value is high, it means that some of the required for prediction features are currently disabled (or, that the model is not fit enough).
+
+    A multiplicative version $\Delta^{mult}_{sparse}=\frac{L_p-L_{full}}{L_p}$. This value is positive when $\Delta^{add}$ is positive, and this value is less than $1$, because $L_{full}>0$
+
+    \item Number of edges in the graph, or the number of large components in the matrix $P$. We compute a k-means clustering in 1-dimensional space of all probabilities $\{P_{xx'}\}_{x\in X_{in},x'\in X_{out}}$. This gives a threshold $\tau\in[0,1]$. Next, we select the pairs $(x, x')$ such that $P_{xx'}>\tau$. This gives the answer causal graph, and the number of non-zero components.
+
+    \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
+\end{itemize}
+
+Separate networks, custom gradient for gumbel, gin configuration, modularity, lagrange exponent/square, custom exponential "annealing", number of optimizers
 
 selecting coefficients
 
