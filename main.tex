@@ -419,6 +419,25 @@ $$
 $$
 
 \section{Measure of complexity}
+First, we give a detailed example of why feature sparsity does not imply interpretability, and interpretability does not imply feature sparsity.
+
+\begin{example}
+    Consider the $2D$ grid-world environment from Figure \ref{fig:env2d2x2} with $H,W>2$. It has $HW$ states. Consider binary features $f_i\in\{0,1\}$. Given the feature dimensionality $f$, we select the first $HW$ most sparse vectors in $\{0,1\}^f$ to map to the states (this is possible in case if $2^f\geq HW$).
+
+    In case if $f=HW$, we have maximal feature sparsity: each feature vector has at most $1$ component. Feature vectors become $1-hot$ vectors coding for the state numbers (except for the $0$ vector). However, the model lacks interpretability because it does not capture the structure of the environment -- it has $2$ independent components $x$ and $y$, and actions affect only the corresponding coordinates.
+
+    One might argue that the feature dimensionality is too high in this case, and this is the cause of the lack of interpretability.
+
+    In case if $HW\approx f+f(f-1)/2$, we use all vectors with $1$ component and all vectors with $2$ components. However, this model is also not interpretable -- it also does not capture the two-dimensional dynamics.
+
+    This shows that feature sparsity in a resonable example is not sufficient for interpretability.
+
+    Now, a coding with two features with $f_1=x$ and $f_2=y$ solves the problem -- each action corresponds to one feature, and features have a simple dynamics.
+    However, this coding is not sparse -- in fact, the values of the features are never $0$. This shows that feature sparsity is not necessary for interpretability.
+\end{example}
+
+In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
+
 We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
@@ -458,7 +477,7 @@ While in practice, it would be hard to find such a function with gradient descen
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.7\linewidth]{diagrams/env_2d_2x2.pdf}
-    \caption{2D grid-world with 4 cells: 2 rows and 2 columns. Actions $\pm x$ and $\pm y$ change the values of the coordinates. The single feature $f\in\{1,2,3,4\}$ bijectively maps to the state space.}
+    \caption{2D grid-world with 4 cells: 2 rows and 2 columns. Actions $\pm x$ and $\pm y$ change the values of the coordinates. The single feature $f\in\{1,2,3,4\}$ bijectively maps to the state space. This example extends naturally to $H$ rows and $R$ columns with $x\in[H]$ and $y\in [W]$, and the same set of actions $\pm x$, $\pm y$.}
     \label{fig:env2d2x2}
 \end{figure}
 
@@ -552,8 +571,11 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
     Suppose that $y\sim Y$ (i.i.d. samples from a distribution $Y$), and $\hat{y}=c$ is a constant predictor. Then, the best value of the relative MSE loss $\rho$ is $1$ with $c=\mathbb EY$. Since neural networks can fit a constant, we expect that $\rho<1$ in our experiments. However, at the beginning of the training, this value can be larger than $1$.
 \end{example}
 
+\begin{example}{(Discrete-valued variables)}
+\end{example}
+
 \begin{example}
-    Suppose that $y=0$ (a constant), and $\hat{y}\sim N(0, \sigma^2)$ -- the normal distribution. In this case, $\sigma[y]=1$ (because the true variance is $0$), and $\rho(y, \hat{y})=\mathbb E_{\hat{y}\sim N(0, \sigma^2)}(0-\hat{y})^2=\sigma^2$
+    Suppose that $y=0$ (a constant), and $\hat{y}\sim N(0, \sigma^2)$ -- the normal distribution. In this case, $\sigma[y]=1$ (because the true variance is $0$), and $\rho(y, \hat{y})=\mathbb E_{\hat{y}\sim N(0, \sigma^2)}(0-\hat{y})^2=\sigma^2$.
 \end{example}
 
 \begin{example}
@@ -594,7 +616,7 @@ In contrast, $L_{fit,obs}=0$ does {\em not} imply that $L_{fit, feat}=0$. Indeed
 
 \begin{example}{(Incorrect causal graph when only using $L_{fit, obs}$)}
     Consider the Game Engine from Figure \ref{fig:env2d2x2}. The features predicted by the decoder are $x$ and $y$ (not the ones in the figure).
-    The model is the following function: $\hat{x}_{t+1}=x_t+10\mathds 1_{a=+y}-10\mathds 1_{a=-y}$, $\hat{y}_{t+1}=y_t+10\mathds 1_{a=+x}-10\mathds 1_{a=-x}$.
+    The model is the following function: $\hat{x}_{t+1}=x_t+10\cdot\mathds 1_{a=+y}-10\cdot\mathds 1_{a=-y}$, $\hat{y}_{t+1}=y_t+10\cdot\mathds 1_{a=+x}-10\cdot\mathds 1_{a=-x}$.
     It is possible to obtain $L_{fit, obs}=0$, because we can reconstruct both the previous state, and the action from $\hat{x}$, $\hat{y}$. Indeed, note that $|x_t|,|y_t|<2$. This means that, if $\hat{x}>10$, an action $+y$ was taken. The rest of the actions are reconstructed in the same way.
     Next, knowing the actions we obtain $x_t$ and $y_t$. Next, the reconstructor performs "the function of the model", computes the (true) next $x_{t+1}$ and $y_{t+1}$, and then performs the reconstruction.
     In case if both of input arguments to the reconstructor are $|x_t|<10$ and $|y_t|<10$, the model does not perform the time-step prediction.
@@ -632,11 +654,11 @@ $$
 \mathbb E_{B\sim Be(P)}K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$.
 
-Thus, we naturally arrive at the $l_1$-relaxation of our discrete problem [cite Bengio].
+This happens because for each component, $\mathbb E_{b\sim Be(p)}b=p$. Thus, we naturally arrive at the $l_1$-relaxation of our discrete problem [cite Bengio].
 
 We define this loss as:
 $$
-L_{sparse}=\mathbb K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
+L_{sparse}=\mathbb E K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$
 
 {\bf Exploration}. In case if for some of the component, $P_{xx'}=0$, that feature is {\em never} selected and is never active.
@@ -686,6 +708,10 @@ This section is usually 5-10 pages.
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
 
+Separate networks, custom gradient for gumbel, gin configuration, modularity
+
+selecting coefficients
+
 The implementation covers some of the implementation details of your project.
 This is not intended to be a low level description of every line of code that
 you wrote but covers the implementation aspects of the projects.
@@ -697,6 +723,14 @@ This section is usually 3-5 pages.
 \chapter{Evaluation}
 \label{ch:evaluation}
 %%%%%%%%%%%%%%%%%%%%
+
+toy experiments
+
+resulting graphs
+
+ablation study
+
+failure modes
 
 In the evaluation you convince the reader that your design works as intended.
 Describe the evaluation setup, the designed experiments, and how the
