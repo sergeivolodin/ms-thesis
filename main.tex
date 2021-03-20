@@ -575,7 +575,9 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
 \end{example}
 
 \begin{example}{(Discrete-valued variables)}
-    Suppose that $y\sim Uniform([n])$ -- a discrete uniform variable taking values in $\{1,...,n\}$. $\mathbb Ey=n/2$ and $\var y=(n^2-1)/12$. In case if $\rho(y,\hat{y})<\varepsilon<\frac{1}{2n}$, we compute $P(y\neq \hat{y})=P(|y-\hat{y}|>1/n)$
+    Suppose that $y\sim Uniform([n])$ -- a discrete uniform variable taking values in $\{1,...,n\}$. $\mathbb Ey=n/2$ and $\var y=(n^2-1)/12$. In case if $\rho(y,\hat{y})<\varepsilon<\frac{1}{2n}$, we compute using the Chebyshev's inequality: $p_{bad}=P(y\neq \hat{y})=P(|y-\hat{y}|>1)\leq \mathbb E(y-\hat{y})^2/1^2=O(\rho n^2/12)$. If we want $p_{bad}=1/n$, we obtain a requirement $\rho<12/n^3$. For a discrete variable with $n=20$ to obtain $p_{bad}<1/20$, we will have to have $\rho\approx1.5\times 10^{-3}$.
+
+    However, if we specify $|y-\hat{y}|\sim Uniform([0, a])$, we have $\var |y-\hat{y}|=(a^2)/12$, and the condition $P(|y-\hat{y}|>1)\leq 1-1/a$. Setting $P(|y-\hat{y}|>1)<1/n$ gives $a<n/(n-1)$. Since $\rho=O(a^2/n^2)$, we arrive at a looser condition $\rho< 1/n^2$. For example, for a discrete variable with $n=20$, to obtain $p_{bad}<1/20$, we will have to have $\rho\approx 3\times 10^{-2}$.
 \end{example}
 
 \begin{example}
@@ -763,7 +765,7 @@ This section is usually 5-10 pages.
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-Separate networks, custom gradient for gumbel, gin configuration, modularity
+Separate networks, custom gradient for gumbel, gin configuration, modularity, lagrange exponent/square, custom exponential "annealing"
 
 selecting coefficients
 
