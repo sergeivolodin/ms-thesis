@@ -14,9 +14,7 @@
 % Options: MScThesis, BScThesis, MScProject, BScProject
 \usepackage[MScThesis,lablogo]{EPFLreport}
 \usepackage{amsmath,amssymb,amsthm} % math typesetting
-\usepackage{bbm}
-
-%\usepackage{dsfont} % for indicator function
+\usepackage{dsfont} % for indicator function
 \usepackage[utf8]{inputenc}
 %\usepackage{natbib} % how to make it work???
 \usepackage{xspace} % possibly add space after something
@@ -27,6 +25,7 @@
 
 
 \newtheorem{example}{Example}[section]
+\newtheorem{proposition}{Proposition}[section]
 
 
 \newcommand{\sysname}{CauseOccam\xspace}
@@ -163,7 +162,7 @@ Finally, the method can be applied to challenging environments interesting in th
 
 In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity, methods for computing gradients for discrete variables, the Occam's razor in Solomonoff induction (supervised learning) and in the AIXI framework (Reinforcement Learning).
 
-We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. The specific cases that we use are the $1$-norm $\|x\|_1=\sum\limits_{i=1}^n|x_i|$, and the $0$-norm $\|x\|_0=\sum\limits_{i=1}^n\mathbb 1_{x_i\neq 0}$ -- number of non-zero components in $x$.
+We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. The specific cases that we use are the $1$-norm $\|x\|_1=\sum\limits_{i=1}^n|x_i|$, and the $0$-norm $\|x\|_0=\sum\limits_{i=1}^n\mathds 1_{x_i\neq 0}$ -- number of non-zero components in $x$ ($\mathds 1_z=1$ if $z$ is true, and $0$ otherwise).
 Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$.
 
 \section{Reinforcement Learning}
@@ -417,13 +416,69 @@ $$
 
 We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
 $$
-K'(W)=\sum\limits_{x\in X_{in}}\|B_x\|_0
+\tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
 $$
 Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower.}. The second reason is there by design. Namely,
 This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. This means that it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
 
-\begin{example}{Too complex model}
+\begin{proposition}{(Too complex decoder)}
+    Consider an arbitrary deterministic environment $\mu$ and a deterministic policy $\pi$. With a suitable decoder, it is possible to obtain $\tilde{K}(B)=1$ (minimal value) and $L_{rec}=L_{fit}=0$
+\end{proposition}
+\begin{proof}
+    The main idea is to map a multidimensional space into a single-dimensional one. There are several ways to do that
+
+    \begin{itemize}
+    \item Consider the space of all possible states $S=\mathbb R^s$ of the true environment.
+
+    It is possible to bijectively map a unit interval $(0,1)$ to a unit square $(0,1)^2$. The mapping is highly non-smooth, like the Peano curve.
+    Using this technique, we map $\mathbb R^s$ to $\mathbb R^{s-1}$. Repeating the process, we eventually map $\mathbb R^s$ to $\mathbb R^1$. Now, there is only a single feature describing the state.
+
+    \item For discrete state spaces, an even simpler approach is possible: since the number of states is finite, it is possible to represent each state using its number. This trick can also work for continuous states with discretization.
+    \end{itemize}
+
+    Now, $f=1$ (only $1$ feature is required). Given features $f_t$, we can compute $f_{t+1}$ by first reconstructing the observation (here the bijectivity matters), and then applying the Game Engine:
+    $$
+    f_{t+1}=D(E(GE(E^{-1}(D^{-1}(f_t))),a_t))
+    $$
+
+    Here, the model $M_f$ depends on a single feature (because we only have a single feature), the reconstruction is perfect, and prediction is perfect.
+
+    The complexity $K(B)=3$: the only feature is used to predict itself, as well as the attributes $d$ and $r$.
+
+    While the complexity of the binary mask $B$ is small, the complete model is extremely complex: the functions $D$ and $D^{-1}$ compute the non-smooth bijection mapping a unit interval to a unit square.
+\end{proof}
+
+While in practice, it would be hard to find such a function with gradient descent, as it is highly non-convex, there is another example which shows that the complexity of $D$ and $M_f$ should not be exceedingly high:
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/env_2d_2x2.pdf}
+    \caption{2D grid-world with 4 cells: 2 rows and 2 columns. Actions $\pm x$ and $\pm y$ change the values of the coordinates. The single feature $f\in\{1,2,3,4\}$ bijectively maps to the state space.}
+    \label{fig:env2d2x2}
+\end{figure}
+
+\begin{example}
+    Consider a grid-world with $2$ components of the player: $x$ (horizontal) and $y$ (vertical) taking discrete values: $x\in [H]$ and $y\in [W]$. The actions $-x$ and $+x$ affect the horizontal coordinate $x$. The actions $-y$ and $+y$ affect the vertical coordinate $y$. We can represent this environment by $2$ features, one for each of the coordinates.
+
+    However, consider the case of $H$ and $W$ being small (for example, $H=W=2$). In this case, we can design a transition model using only a single feature $f_1$ which takes the following values:
+
+    $
+    \begin{array}{ccc}
+        f_1 & x & y \\
+        1 & 1 & 1 \\
+        2 & 1 & 2 \\
+        3 & 2 & 1 \\
+        4 & 2 & 2
+    \end{array}
+    $
+
+    For example, if $x=1$ and $y=2$, we set $f_1=2$.
+
+    Now, the transition model becomes:
+
+
 \end{example}
+
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
 
