@@ -414,6 +414,7 @@ $$
 \end{array}
 $$
 
+\section{Measure of complexity}
 We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
@@ -474,11 +475,58 @@ While in practice, it would be hard to find such a function with gradient descen
 
     For example, if $x=1$ and $y=2$, we set $f_1=2$.
 
-    Now, the transition model becomes:
+    Now, the transition model is shown in Figure \ref{fig:env2d2x2}. It is quite complex: each feature variable can potentially result in $3$ different states! However, a neural network with enough layers could fit this dynamics.
 
+    A much simpler model appears if we map each coordinate to a separate feature: $f_1=x$ and $f_2=y$. In this case, the dynamics for each coordinate is much more simple:
+    $f_1^{t+1}=\max(1, \min(2, f_1^t+\mathds 1_{a=+x}-\mathds 1_{a=-x}))$
 
+    Thus, too high model complexity will result in less features used, but the interpretability will be lost.
+
+    Luckily, this pathological behavior disappears as $H, W\to\infty$. While the complexity of the coordinate-wise approach does {\em not} become more complex, and is always described as $f_1^{t+1}=\max(1, \min(H, f_1^t+\mathds 1_{a=+x}-\mathds 1_{a=-x}))$, the single-feature approach's complexity increases. First, we show it for the case of "left-to-right" numbering.
+    For the single-feature model, we set $f=W\cdot (x - 1)+y$, and we can reconstruct $y=f\mod W$ and $x=(f-y)/W+1$.
+    Now, implementing the $z\mod n$ function for $z\in [kn]$ with a neural network of constant complexity is impossible [?????].
+
+    \todo{Seems obvious but very unclear how to prove}
+
+    Therefore, for more states in a dimension ($x$ or $y$), the model would prefer using two features instead of $1$.
+
+    However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple.
 \end{example}
 
+
+{\bf Linear models.} A reasonable questions might occur: would it be possible to use the simplest possible class of models to define functions $F$ -- linear models, and "transfer" all of the non-linear complexity into the decoder? This would be extremely beneficial, as environments would be extremely interpretable in this space. The following example shows that even for one of the simplest RL environments, there is no linear feature space that preserves the dynamics and maps bijectively into observations.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/env_line_3}
+    \caption{Line environment with 3 states. Action $a_1$ corresponds to moving right, and $a_2$ corresponds to moving left. Going left from the left-most state does not change the sate, and same for the right-most state. The variable $x$ increases when going right and takes integer values starting from $1$. Each state with $x=i$ has an associated feature vector $f_i$}
+    \label{fig:env_line3}
+\end{figure}
+
+
+\begin{example}
+    Consider the class of linear models: $M_f(f_t,a_t)=M_ff_t+M_aa_t+b$, where $M_f$ is a matrix of size $f\times f$, $M_a$ is a matrix of size $f\times a$, and $b$ is the bias vector of size $f$. We are interested in all environments that can be characterized by linear latent dynamics. In other words, what are all the environments, for which there exist a decoder $D$ and a reconstructor $R$, such that there exist a bijection between the set of observations and the set of feature vectors, and the feature dynamics is linear?
+
+    We show that this class is very small, even with a non-linear decoder. Indeed, consider the Line-3 environment (navigating on a line with 3 states) -- see Figure \ref{fig:env_line3}. It does not fit into our definition.
+
+    Indeed, first, the bias term in the linear model can be shifted into the actions $M_a$. Suppose that the decoder gives some features for the states $f_1, f_2, f_3$ (does not matter how, it's only important that the features are fixed). Multiplying $M_aa_i=A_i$ by definition, this gives two vectors $A_1$ and $A_2$.
+
+    Then, $f_1=M_ff_1+A_2$ (going left from $f_1$ gives $f_1$), and $f_3=M_ff_3+A_1$ (going right from $f_3$ gives $f_3$). Now consider what happens in $f_2$. If we go left, we get $f_1$: $M_ff_2+A_2=f_1$. If we go right, we get $f_3$: $M_ff_2+A_1=f_3$. Subtracting these two gives $f_3-f_1=A_1-A_2$. On the other hand, the "stuck at the wall" equations give us $f_3-f_1=M_ff_3+A_1-M_ff_1-A_2=M_f(f_3-f_1)+A_1-A_2$. So, equating these two, we get
+    $f_3-f_1=M_f(f_3-f_1)+A_1-A_2=A_1-A_2$. This means that $M_ff_3=M_ff_1$.
+
+    Now, consider the "stuck at the right wall" $f_3=M_ff_3+A_1$, and going right from $f_1$: $f_2=M_ff_1+A_1$. But $M_ff_1=M_ff_3$, which means that $f_2=M_ff_3+A_1$. Note the same RHS as for the "stuck at the right wall". Therefore, $f_2=f_3$, {\em we cannot distinguish between $f_2$ and $f_3$, degenerate representation.}
+
+    This contradiction shows that for this environment, features are either {\em degenerate} (a single feature vector corresponds to two different observations), or the model should be non-linear.
+
+    Note that a simple non-linear model is applicable for this environment:
+    $f_1=x$, $f_1^{t+1}=\min(3, \max(1, f_1^t+\mathds 1_{a=a_1}-\mathds 1_{a=a_2}))$.
+\end{example}
+
+These examples show that it is important to set the complexity of the model's neural networks correctly. A too simple model would never fit the environment, and a too complex model can give non-interpretable features.
+
+A practical way to choose the measure of complexity is to first fit a model without sparsity constraints, select one with minimal complexity still fitting the data, and then run \sysname.
+
+\section{Optimization problem for \sysname}
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
 
@@ -678,12 +726,7 @@ $$
 
 {\bf OMG}
 
-Our linear class $f_{t+1}=M_ff_t+M_aa_t+b$ is a really small class of environments, even with a non-linear decoder... Indeed, a Line environment (navigating on a line with 3 states) does not fit into that definition. Consider an MDP with 3 states, $[1, 2, 3]$, and two actions, right and left encoded as one-hot: $a_1=[1, 0]$ and $a_2=[0, 1]$. The bias term in the linear model can be shifted into the actions $M_a$. Suppose that the decoder gives some features for the states $f_1, f_2, f_3$ (does not matter how, it's only important that the features are fixed). Multiplying $M_aa_i=A_i$ by definition, this gives two vectors $A_1$ and $A_2$.
 
-Then, $f_1=M_ff_1+A_2$ (going left from $f_1$ gives $f_1$), and $f_3=M_ff_3+A_1$ (going right from $f_3$ gives $f_3$). Now consider what happens in $f_2$. If we go left, we get $f_1$: $M_ff_2+A_2=f_1$. If we go right, we get $f_3$: $M_ff_2+A_1=f_3$. Subtracting these two gives $f_3-f_1=A_1-A_2$. On the other hand, the "stuck at the wall" equations give us $f_3-f_1=M_ff_3+A_1-M_ff_1-A_2=M_f(f_3-f_1)+A_1-A_2$. So, equating these two, we get
-$f_3-f_1=M_f(f_3-f_1)+A_1-A_2=A_1-A_2$. This means that $M_ff_3=M_ff_1$.
-
-Now, consider the "stuck at the right wall" $f_3=M_ff_3+A_1$, and going right from $f_1$: $f_2=M_ff_1+A_1$. But $M_ff_1=M_ff_3$, which means that $f_2=M_ff_3+A_1$. Note the same RHS as for the "stuck at the right wall". Therefore, $f_2=f_3$, {\bf we cannot distinguish between $f_2$ and $f_3$, degenerate representation.}
 
 
 
