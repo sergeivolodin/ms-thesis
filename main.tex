@@ -420,6 +420,8 @@ $$
 $$
 
 \section{Measure of complexity}
+
+\subsection{Sparse features are neither necessary nor sufficient for interpretability}
 First, we give a detailed example of why feature sparsity does not imply interpretability, and interpretability does not imply feature sparsity.
 
 \begin{example}
@@ -441,6 +443,7 @@ To be fair, sparse features do help interpretability in case if an observation c
 
 In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
 
+\subsection{Sparse fan-in models sometimes are sufficient for interpretability, and usually necessary}
 We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
@@ -557,7 +560,8 @@ A practical way to choose the measure of complexity is to first fit a model with
 \section{Optimization problem for \sysname}
 Overall, we would like to obtain a sparse model without loss of fit quality. Our search space consists of continuous parameters for $D,R,F_x$, and discrete parameters $B_x$ for $x\in X_{in}$ (see above).
 
-{\bf Relative loss.} In order to know how well the model predicts the next state, we use a {\em relative} mean-squared error loss, instead of the standard "absolute" one. Specifically, if the model predicts $\hat{y}_t$, for $t\in[T]$, and the true values are $y_t$, $t\in[T]$, the relative MSE error is defined as:
+\subsection{Relative mean-squared error loss}
+In order to know how well the model predicts the next state, we use a {\em relative} mean-squared error loss, instead of the standard "absolute" one. Specifically, if the model predicts $\hat{y}_t$, for $t\in[T]$, and the true values are $y_t$, $t\in[T]$, the relative MSE error is defined as:
 \begin{equation}
 \label{eq:rel_mse}
 \rho(y_t, \hat{y}_t|t\in[T])=\frac{1}{T}\sum\limits_{t=1}^T\left(\frac{y_t-\hat{y}_t}{\sigma[y]}\right)^2
@@ -588,7 +592,8 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
     Suppose that $y\sim N(0, \sigma^2)$ (normal distribution), and $\hat{y}=0$ -- a constant. In this case, $\sigma[y]=\sigma$ and $\rho(y, \hat{y})= 1/\sigma^2 \mathbb E_{y\sim N(0, \sigma^2)}(y-0)^2=\sigma^2/\sigma^2=1$.
 \end{example}
 
-{\bf Degenerate decoder.} The decoder needs to be invertible (or, at least, "partially" invertible). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
+\subsection{Degenerate decoder}
+The decoder needs to be invertible (or, at least, "partially" invertible). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
 
 The reconstruction loss is defined in terms of the expected distance between the reconstructed and true observations:
 \begin{equation}
@@ -596,7 +601,7 @@ The reconstruction loss is defined in terms of the expected distance between the
 L_{rec}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)}\rho(R(D(o_t)), o_t|t\in [T])
 \end{equation}
 
-{\bf Model fitting the data.}
+\subsection{Model fit in observation and feature space}
 We also would like the model to predict the future time-steps correctly. This can be achieved in one of two ways.
 
 \begin{enumerate}
@@ -648,7 +653,8 @@ Note that, without the relative loss, it is not even required for the model to p
 
 Therefore, we have to use both losses, one in the feature space, and one in the observation space.
 
-{\bf Sparsity.} In \autoref{sec:grad_discrete} we outline techniques for parameterizing $B\sim Be(P)$ and then computing the gradient $\partial B/\partial P$, so it becomes possible to find the values of $B$ using gradient descent.
+\subsection{Sparsity loss}
+In \autoref{sec:grad_discrete} we outline techniques for parameterizing $B\sim Be(P)$ and then computing the gradient $\partial B/\partial P$, so it becomes possible to find the values of $B$ using gradient descent.
 
 Now we consider the original objective:
 $$
@@ -667,7 +673,8 @@ $$
 L_{sparse}=\mathbb E K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$
 
-{\bf Ranges of probabilities and exploration.} In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
+\subsection{Ranges of probabilities and exploration}
+In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
 
 However, we would like to have the case $P_{xx'}=1$ possible in our system. Indeed the difference in losses $L_{fit}\big|_{B_{xx'}=0}$ and $L_{fit}\big|_{B_{xx'}=1}$ can be drastic, and in the worst case we have $L_{fit}\big|_{B_{xx'}=0}-L_{fit}\big|_{B_{xx'}=1}=f+2$ (without using the important feature, each output feature can only be predicted as a constant, and the same for reward and done). Therefore, if $p_{\max}<1$, we have $L_{fit}=(f+2)(1-p_{\max})$, and the loss will no go lower than this value.
 
@@ -697,7 +704,8 @@ It means that the loss with $B_{xx'}$ disabled is upper-bounded by the current l
     To avoid a case when there are no samples with $\xi=1$ (with low $p$), we limit the range of $p$ to be $p\geq p_{\min}=0.01=1\%$. Setting this value higher results in feature duplicates, as the model tries to predict the outputs even from partially present features. A value of $1\%$ with a batch size of $T=5000$ gives $50$ samples with $\xi=1$ in the worse case (on average), which is empirically sufficient to turn features on. To turn the features off, we introduce a sparsity regularizer.
 \end{example}
 
-{\bf Non-stationarity and adding the mask to the model.} Consider the data that the functions $F_x$ are fit on, when the probabilities $P$ change:
+\subsection{Non-stationarity and adding the mask to the model}
+Consider the data that the functions $F_x$ are fit on, when the probabilities $P$ change:
 $$
 fa_t\odot B_x\to x_{t+1}
 $$
@@ -710,12 +718,14 @@ $$
 \hat{x}=F_x(fa_t\odot B_x,B_x)
 $$
 
-{\bf Separate exploration loss.} To speed up the convergence even more for the cases $p\approx 0$ and $p\approx 1$, we temporarily threshold the probabilities to be in the range $[p^{expl}_{\min},p^{expl}_{\max}]$, and fit the models with masks $B$ sampled from this distribution. This results in the loss
+\subsection{Separate exploration loss}
+To speed up the convergence even more for the cases $p\approx 0$ and $p\approx 1$, we temporarily threshold the probabilities to be in the range $[p^{expl}_{\min},p^{expl}_{\max}]$, and fit the models with masks $B$ sampled from this distribution. This results in the loss
 \begin{equation}
 L_{fit}\big|_{p:=p^{expl}}=\mathbb E_{B\sim Be(p^{expl})} L_{fit}
 \end{equation}
 
-{\bf Additional feature transformation ("rotation").} During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model. These transforms allow to quickly enable or disable features, or to change the linear combination of them:
+\subsection{Additional feature transformation ("rotation")}
+During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model. These transforms allow to quickly enable or disable features, or to change the linear combination of them:
 $$
 \begin{array}{clll}
 L_{fit, obs}&=\rho(R(Z_{post}(M_f(Z_{pre}(D(o_t)),a_t))), o_{t+1});& R\circ Z_{post}\circ M_f \circ Z_{pre}\circ D&\mapsto o_{t+1},\\
@@ -724,7 +734,8 @@ L_{fit, m-feat}&=\rho(M_f(Z_{pre}(D(o_t)),a_t), Z_{pre}(D(o_{t+1})));&M_f\circ Z
 \end{array}
 $$
 
-{\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together
+\subsection{Optimization schemes}
+Now, we have a number of losses that we would like to minimize together
 
 \begin{equation}
 \label{eq:all_losses}
@@ -828,9 +839,11 @@ This section is usually 5-10 pages.
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-{\bf Initialization.} We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We this method to initializing with all zeros, all ones, or a random initialization in the next section
+\subsection{Initialization}
+We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We this method to initializing with all zeros, all ones, or a random initialization in the next section
 
-{\bf Metrics.} In order to assess the quality of the solution, we track the following quantities:
+\subsection{Metrics}
+In order to assess the quality of the solution, we track the following quantities:
 \begin{itemize}
     \item Sparsity gap. We compute $L_{fit}$ with the current mask $B\sim Be(P)$, as well as with a fully-enabled mask (or the complete causal graph) $B_{xx'}=1$. This gives losses $L_p=L_{fit}^{p}$ and $L_{full}=L_{fit}^{p:=1}$.
 
@@ -843,19 +856,34 @@ This section is usually 5-10 pages.
     \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
 \end{itemize}
 
-{\bf Separate networks to predict pixels and models.} Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}.
+\subsection{Separate networks to predict pixels and models}
+Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}.
 
 In order to implement the separate networks we use the {\tt einsum} operator in pytorch to implement "vectorized" fully-connected networks.
 
-{\bf Project structure.} The code can be found in our \href{Github repository}{https://github.com/sergeivolodin/causality-disentanglement-rl}. The code uses gin config files for modular configuration, ray tune for hyperparameter tuning, Tensorboard for tracking metrics real-time, and Sacred to save all the data from all experiments.
+\subsection{Project code structure}
+The code can be found in our \href{Github repository}{https://github.com/sergeivolodin/causality-disentanglement-rl}. The code uses gin config files for modular configuration, ray tune for hyperparameter tuning, Tensorboard for tracking metrics real-time, and Sacred to save all the data from all experiments.
 
-{\bf Data collection.} We run $k$ parallel data collection processes with ray, and aggregate the data in one ring buffer process. Each minibatch is sampled as random steps from all of the collected episodes and given to the learner class. The ring buffer process maintains the ratio of collected steps to sampled steps to be at least a constant fraction $\zeta=0.5$ to prevent overfitting to only collected steps.
+\subsection{Data collection and the true distribution}
+We run $k$ parallel data collection processes with ray, and aggregate the data in one ring buffer process. Each minibatch is sampled as random steps from all of the collected episodes and given to the learner class. The ring buffer process maintains the ratio of collected steps to sampled steps to be at least a constant fraction $\zeta=0.5$ to prevent overfitting to only collected steps.
 
-We note that this does not result in a true distribution $\mathbb E_{h\sim (\mu\leftrightarrow\pi)}\mathbb {t\sim Uniform([T])}$. The true distribution requires us to sample one episode, select a random step, and then discard the rest of the episode. Effectively, it would require to set $\zeta=\mathbb E_{h}T$: we sample $T$ times more steps than "required". This would slow down the convergence significantly. In a minibatch from the true distribution, all the steps are likely to be from different episodes. This is important for procedurally-generated environments which have a different layout for each new episode.
+We note that this does not result in a true distribution $\mathbb E_{h\sim (\mu\leftrightarrow\pi)}\mathbb E_{t\sim Uniform([T])}$. The true distribution requires us to sample one episode, select a random step, and then discard the rest of the episode. Effectively, it would require to set $\zeta=\mathbb E_{h}T$: we sample $T$ times more steps than "required". This would slow down the convergence significantly. In a minibatch from the true distribution, all the steps are likely to be from different episodes. This is important for procedurally-generated environments which have a different layout for each new episode.
 
-{\bf Number of optimizers.} Consider the loss from \autoref{eq:opt_scheme_linear_comb}. It depends on multiple groups of variables: the decoder $D$, the model $M$, the reconstructor $R$, and the matrix of probabilities $P$.
+\subsection{Number of optimizers}
+Consider the loss from \autoref{eq:opt_scheme_linear_comb}. It depends on multiple groups of variables: the decoder $D$, the model $M$, the reconstructor $R$, and the matrix of probabilities $P$. We test two options for optimizing $L$:
+\begin{itemize}
+    \item One optimizer, updating each group of variables at every iteration.
+    \item $4$ optimizers, each updating one of $\{D,M,R,P\}$, and doing multiple steps at a time. This corresponds to finding the optimum a bit more precisely for one group of parameters. The rationale is the following. Since for a single group of parameters (such as $M$), the problem looks more like supervised learning (the model receives a stationary distribution of inputs, and has to fit a stationary distribution of outputs), the problem becomes more like what neural networks are well-tested at -- supervised learning, albeit only for a few iterations.
+\end{itemize}
 
-custom gradient for gumbel, lagrange exponent/square, custom exponential "annealing", number of optimizers
+\subsection{Time-scale separation for Lagrange multipliers}
+Sometimes the order of magnitude of $\lambda_i$ in \autoref{eq:opt_scheme_fit_guess_granular} or \autoref{eq:opt_scheme_fit_guess_lin_comb} needs to be changed significantly. For example, the value of the sparsity has recently decreased significantly, which leads to a much bigger emphasis on the constraints. We need to decrease the Lagrange multiplier, or, otherwise, too little emphasis is put on decreasing sparsity even more. With standard parameterization, $\lambda_i$ would decrease exponentially like in standard Gradient Descent.
+
+If we reparameterize $\lambda_i=\sqrt{\mu_i}$, or $\lambda_i=\mu_i^2$ or $\lambda_i=\exp(\mu_i)$, the parameter $\lambda_i$ would change slower (in the first two cases) or faster (in the last two cases). Such a difference cannot be achieved by simply changing the learning rate for $\lambda_i$, as such modifications would only change the "slope of the line", while reparametrization changes the asymptotic behavior (for example, a line vs. a quadratic function).
+
+A result shows that a sufficient time-scale separation is crucial [GAN learning rate paper].
+
+custom gradient for gumbel, custom exponential "annealing"
 
 selecting coefficients
 
@@ -870,6 +898,21 @@ This section is usually 3-5 pages.
 \chapter{Evaluation}
 \label{ch:evaluation}
 %%%%%%%%%%%%%%%%%%%%
+
+\section{Environments}
+\subsection{VectorIncrement$(n)$ environment}
+\subsection{KeyChest$(h,w,f,c,k)$ environment}
+\subsection{SparseMatrix$(n,k)$ environment}
+
+\section{True and learned causal graphs}
+\subsection{VectorIncrement$(5)$ environment}
+\subsection{VectorIncrement$(2)$ environment}
+\subsection{KeyChest$(5, 5)$ environment}
+\subsection{SparseMatrix$(5, 7)$ environment}
+
+\section{Ablation study for VectorIncrement$(5)$}
+
+\section{Failure mode analysis}
 
 toy experiments
 
@@ -935,6 +978,10 @@ This section is usually 3-5 pages.
 In the conclusion you repeat the main result and finalize the discussion of
 your project. Mention the core results and why as well as how your system
 advances the status quo.
+
+\section{Future work}
+
+\section{Sparse causal models and the problem of consciousness}
 
 % Appendices are optional
 % \appendix
