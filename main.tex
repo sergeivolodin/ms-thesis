@@ -607,9 +607,42 @@ Therefore, we have to use $L_{fit,feat}$. However, in practice, even when using 
 \begin{example}
 Consider the Game Engine from Figure \ref{fig:env2d2x2}. It has $2$ latent variables: $x$ and $y$. Now, suppose that the features (not on the figure) are $f_1=x$ and $f_2=\alpha y+(1-\alpha)x$ for $\alpha \ll 1$. Suppose that $L_{fit, feat}<\varepsilon$. Does it mean that the model "preserves" the information both about $x$ and $y$? No.
 
-Indeed, for the variable $x$, $L_{fit, feat}<\varepsilon$ implies that $\rho(x,\hat{x})<\varepsilon$, as required. However, for the feature $y$, we have
+Indeed, for the variable $x$, $L_{fit, feat}<\varepsilon$ implies that $\rho(x,\hat{x})<\varepsilon$, as required. However, for $y$, it does not. Indeed, we can show that it is possible to obtain any $\varepsilon$ bound on th e loss given $\hat{y}=\mathbb y$ (the constant prediction giving $\rho(y,\hat{y})=1$. Assume that $x$ is predicted perfectly. Next, consider
+
+$$\rho(\alpha y+(1-\alpha)x,\alpha \hat{y}+(1-\alpha)\hat{x})=\frac{\mathbb E \left(\alpha(y-\hat{y})+(1-\alpha)(x-\hat{x})\right)^2}{\sigma[\alpha y+(1-\alpha)x]^2}$$.
+
+We assume that $x$ and $y$ are independent under $\pi$ and have the same variance of $c$. Then we compute $\sigma[\alpha y+(1-\alpha)x]^2=\sqrt{\alpha^2+(1-\alpha)^2}c$.
+
+Next, since $\hat{x}=x$, $\rho=1/\sigma^2\alpha^2\mathbb E(y-\hat{y})^2=\frac{\alpha^2}{\alpha^2+(1-\alpha)^2}$. Since this equation has a limit of $0$ when $\alpha\to 0$, and since the decoder is free to set $\alpha$ arbitrarily small, we can make $L_{fit, feat}$ arbitrarily small, while the model only predicts the value of $x$, but not the value of $y$.
+
+Note that, without the relative loss, it is not even required for the model to predict the value of $x$. Indeed, to make the loss arbitrary small, it is sufficient for the decoder to reduce the magnitude of the features, and for the reconstructor to increase the input weights.
 \end{example}
 
+Therefore, we have to use both losses, one in the feature space, and one in the observation space.
+
+{\bf Sparsity.} In \autoref{sec:grad_discrete} we outline techniques for parameterizing $B\sim Be(P)$ and then computing the gradient $\partial B/\partial P$, so it becomes possible to find the values of $B$ using gradient descent.
+
+Now we consider the original objective:
+$$
+K(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
+$$
+
+Since $B$ is sampled from a distribution $P$, we compute the expected value:
+$$
+\mathbb E_{B\sim Be(P)}K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
+$$.
+
+Thus, we naturally arrive at the $l_1$-relaxation of our discrete problem [cite Bengio].
+
+We define this loss as:
+$$
+L_{sparse}=\mathbb K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
+$$
+
+{\bf Exploration}. In case if for some of the component, $P_{xx'}=0$, that feature is {\em never} selected and is never active.
+
+
+{\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together: $L_{rec}$, $L_{fit, feat}$, $L_{fit, obs}$, $L_{sparse}$. Ideally, we would like to find a point which jointly minimizes all of these losses. In the case of a deterministic environment, it is possible to achieve all of the losses being $0$, $L_{sparse}$ having the minimal possible discrete value.
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
 
