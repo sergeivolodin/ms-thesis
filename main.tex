@@ -214,6 +214,8 @@ This way, the computationally expensive reconstructor can be fit on two kinds of
 Another technique prevents predicting high-dimensional observations altogether by replacing $R$ with a value function predictor, which is fit to predict the reward-to-go $R_t(h_T)=\sum\limits_{\tau=t}^{T}\gamma^{\tau-t+1}r_{\tau}$:
 $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
+\todo{Describe unsupervised ways (siamese, margin, ...)}
+
 \section{Causal modeling and deep causal modeling}
 \label{sec:causal}
 In a nutshell, causal models are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
@@ -421,7 +423,7 @@ We set the proxy for the Kolmogorov complexity for our class of models as the to
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
 $$
-Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower.}. The second reason is there by design. Namely,
+Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower. Another option is to use the same technique with disabling features to limit the fan-in of the neurons in the network to induce structural sparsity. However, this would result in an even more non-convex and hard-to-optimize problem than this thesis presents. This approach is out of the scope of this thesis.}. The second reason is there by design. Namely,
 This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. This means that it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
 
 \begin{proposition}{(Too complex decoder)}
@@ -495,6 +497,8 @@ While in practice, it would be hard to find such a function with gradient descen
     However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple.
 \end{example}
 
+{\bf "Reusable" decoders and models.} Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
+
 
 {\bf Linear models.} A reasonable questions might occur: would it be possible to use the simplest possible class of models to define functions $F$ -- linear models, and "transfer" all of the non-linear complexity into the decoder? This would be extremely beneficial, as environments would be extremely interpretable in this space. The following example shows that even for one of the simplest RL environments, there is no linear feature space that preserves the dynamics and maps bijectively into observations.
 
@@ -529,6 +533,43 @@ These examples show that it is important to set the complexity of the model's ne
 A practical way to choose the measure of complexity is to first fit a model without sparsity constraints, select one with minimal complexity still fitting the data, and then run \sysname.
 
 \section{Optimization problem for \sysname}
+Overall, we would like to obtain a sparse model without loss of fit quality. Our search space consists of continuous parameters for $D,R,F_x$, and discrete parameters $B_x$ for $x\in X_{in}$ (see above).
+
+{\bf Relative loss.} In order to know how well the model predicts the next state, we use a {\em relative} mean-squared error loss, instead of the standard "absolute" one. Specifically, if the model predicts $\hat{y}_t$, for $t\in[T]$, and the true values are $y_t$, $t\in[T]$, the relative MSE error is defined as:
+\begin{equation}
+\label{eq:rel_mse}
+\rho(y_t, \hat{y}_t|t\in[T])=\frac{1}{T}\sum\limits_{t=1}^T\left(\frac{y_t-\hat{y}_t}{\sigma[y]}\right)^2
+\end{equation}
+Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-zero, and it is defined as $1$ otherwise.
+
+\begin{example}
+    Suppose that $T=2$, $y_{\cdot}=\varepsilon\cdot (0,1)$ and $\hat{y}_{\cdot}=\varepsilon\cdot (1, 0)$. We compute $\sigma[y]=0.5\varepsilon$, and $\rho(y_t,\hat{y}_t)=4$. This value does not depend on the scale $\varepsilon$ of $y$ and $\hat{y}$. In contrast, the traditional mean-squared error would yield $\rho_{mse}(y_t,\hat{y}_t)=\frac{1}{T}\sum\limits_{t=1}^T\left(y_t-\hat{y}_t\right)^2=0.5\varepsilon^2(1^2+1^2)=\varepsilon^2$, which depends on the scale of the features.
+
+    It is important that the quality metric does not depend on the magnitude of the inputs, as the magnitude of the predicted features can be arbitrary high or low.
+\end{example}
+
+\begin{example}
+    Suppose that $y\sim Y$ (i.i.d. samples from a distribution $Y$), and $\hat{y}=c$ is a constant predictor. Then, the best value of the relative MSE loss $\rho$ is $1$ with $c=\mathbb EY$. Since neural networks can fit a constant, we expect that $\rho<1$ in our experiments. However, at the beginning of the training, this value can be larger than $1$.
+\end{example}
+
+\begin{example}
+    Suppose that $y=0$ (a constant), and $\hat{y}\sim N(0, \sigma^2)$ -- the normal distribution. In this case, $\sigma[y]=1$ (because the true variance is $0$), and $\rho(y, \hat{y})=\mathbb E_{\hat{y}\sim N(0, \sigma^2)}(0-\hat{y})^2=\sigma^2$
+\end{example}
+
+\begin{example}
+    Suppose that $y\sim N(0, \sigma^2)$ (normal distribution), and $\hat{y}=0$ -- a constant. In this case, $\sigma[y]=\sigma$ and $\rho(y, \hat{y})= 1/\sigma^2 \mathbb E_{y\sim N(0, \sigma^2)}(y-0)^2=\sigma^2/\sigma^2=1$.
+\end{example}
+
+{\bf Degenerate decoder.} The decoder needs to be invertible (or, at least, "partially" invertible). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
+
+The reconstruction loss is defined in terms of the expected distance between the reconstructed and true observations:
+\begin{equation}
+\label{eq:reconstruction_loss}
+L_{rec}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)}\rho(R(D(o_t)), o_t|t\in [T])
+\end{equation}
+
+{\bf Model fitting the data.}
+
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
 
