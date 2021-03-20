@@ -740,30 +740,81 @@ Ideally, we would like to find a point which jointly minimizes all of these loss
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
 Such an approach, however, requires to "guess" the parameter $\lambda$.
-A much more convenient way is to either guess the target number of edges in the graph $K(B)$, or the
+A much more convenient way is to either guess the target number of edges in the graph $K(B)$, or the losses constraint $L_i\leq c_i$ for $i\in\{fitobs, fitfeat, rec\}$.
+We present the approaches below:
 
 
-Mathematically, we are searching for the decoder function such that:
+\begin{itemize}
+    \item Linear combination of losses with constant coefficients:
+
+    \begin{equation}
+    \label{eq:opt_scheme_linear_comb}
+    \mathcal L=\lambda_{sparse}\cdot L_{sparse}+\lambda_{fit,feat}\cdot L_{fit, feat}+\lambda_{fit,obs}\cdot L_{fit, obs}+\lambda_{rec}\cdot L_{rec}\to\min\limits_{D,M,R,P}
+    \end{equation}
+
+    \item Constrained problem with sparsity guess:
+    \begin{equation}
+    \label{eq:opt_scheme_sparsity_guess}
+    \begin{array}{ll}
+    \min\limits_{D,M,R,P}& \lambda_{fit,feat}\cdot L_{fit, feat}+\lambda_{fit,obs}\cdot L_{fit, obs}+\lambda_{rec}\cdot L_{rec}\\
+    s.t.& L_{sparse}\leq c_{sparse}
+    \end{array}
+    \end{equation}
+
+    \item Constrained problem with fit guess and a linear combination:
+    \begin{equation}
+    \label{eq:opt_scheme_fit_guess_lin_comb}
+    \begin{array}{ll}
+    \min\limits_{D,M,R,P}& L_{sparse}\\
+    s.t.&\lambda_{fit,feat}\cdot L_{fit, feat}+\lambda_{fit,obs}\cdot L_{fit, obs}+\lambda_{rec}\cdot L_{rec} \leq c_{fit, comb}
+    \end{array}
+    \end{equation}
+
+    \item Constrained problem with granular fit guess:
+    \begin{equation}
+    \label{eq:opt_scheme_fit_guess_granular}
+    \begin{array}{ll}
+    \min\limits_{D,M,R,P}& L_{sparse}\\
+    s.t.&L_{fit, feat}\leq c_{fit, feat}\\
+    s.t.&L_{fit, obs}\leq c_{fit, obs}\\
+    s.t.&L_{rec}\leq c_{rec}
+    \end{array}
+    \end{equation}
+\end{itemize}
+
+We compare the versions \ref{eq:opt_scheme_linear_comb}, \ref{eq:opt_scheme_sparsity_guess}, \ref{eq:opt_scheme_fit_guess_lin_comb}, \ref{eq:opt_scheme_fit_guess_granular} in \autoref{ch:evaluation}.
+
+In terms of the ease of use, \autoref{eq:opt_scheme_fit_guess_granular} requires least knowledge about the problem. Indeed, we only set the relative thresholds for the losses (values less than $1$), and obtain the most sparse causal graph allowing for such a loss.
+
+{\bf Solving constrained problems.} To solve the constrained problems with gradient descent we use the Lagrange primal-dual method. We consider the Lagrange function for the \autoref{eq:opt_scheme_fit_guess_granular}:
+$$
+L_{agrange}=L_{sparse}+\lambda_{fit, feat}(L_{fit, feat}-c_{fit, feat})+\lambda_{fit, obs}(L_{fit, obs}-c_{fit, obs})+\lambda_{rec}(L_{rec}-c_{rec})
+$$
+
+We note that solving \autoref{eq:opt_scheme_fit_guess_granular} corresponds to solving
 \begin{equation}
-\label{eq:sparse_rl_problem}
-\begin{aligned}
-    \min_{D,M_f,R} \quad & K(M_f)\\
-    \textrm{s.t.} \quad & L_{rec}+L_{fit}\leq\varepsilon \\
-\end{aligned}
+\label{eq:opt_lagrange}
+\min\limits_{D,M,R,P}\max\limits_{\{\lambda_i\geq 0\}}L_{agrange},\,i\in\{fitfeat, fitobs, rec\}
 \end{equation}
 
-Here, there are the following losses used:
-\begin{enumerate}
-\item The sparsity loss with $M_f^{sw}$ being the switch parameters from \autoref{sec:sparse_deep}, \autoref{sec:grad_discrete} which
+Indeed, an an optimal point of \autoref{eq:opt_scheme_fit_guess_granular} is a saddle point of \autoref{eq:opt_lagrange} [known fact]. Roughly speaking, this happens because if a constraint is violated, any $\lambda>0$ results in an infinite value of the loss.
+
+To solve this problem, a primal-dual descent-ascent method can be applied (here $x=(D,M,R,P)$ -- the parameters of all neural networks):
+
 \begin{equation}
-\label{eq:sparsity}
-K(M_f)=\|M_f^{sw}\|_1
+\label{eq:primaldual}
+\begin{array}{rl}
+x_{t+1}&=x-\eta\frac{\partial L_{agrange}}{\partial x}\\
+\lambda_i&=\lambda_i+\eta\frac{\partial L_{agrange}}{\partial \lambda_i},\,i\in\{fitfeat,fitobs,rec\}
+\end{array}
 \end{equation}
-\item The reconstruction loss:
-$$L_{rec}=\mathbb E_{h\sim (\pi\leftrightarrow\pi)}\frac{1}{T-1}\sum\limits_{t=1}^{T-1}\rho(R(D(o_t)),o_t)$$
-\end{enumerate}
 
+For convex functions, this algorithm is known to converge to a saddle point of \autoref{eq:opt_lagrange}. The algorithm has the following intuitive interpretation. Suppose that $\lambda_i$ is small, and $i'th$ constraint is violated: $L_i>c_i$. Since $\frac{\partial L_{agrange}}{\partial \lambda_i}=L_i-c_i>0$, the parameter $\lambda_i$ would increase. If, in contrast, the constraint has a slack (is not violated) and $L_i<c_i$, the parameter $\lambda_i$ would decrease to allow optimizing for the objective $L_{sparse}$.
+Therefore, we expect the following dynamics: first, the algorithm would turn most of the features on in order to satisfy the constraints, and then it would optimize for sparsity.
 
+If we apply this algorithm for the other (symmetric) formulation of our problem (\autoref{eq:opt_scheme_sparsity_guess}), it would first disable features, and then, once the target sparsity level was reached, it would care about fitting the reconstructor and the SCM functions.
+
+%{\bf Sparsity has to be lower than required sometimes.}
 
 Introduce and discuss the design decisions that you made during this project.
 Highlight why individual decisions are important and/or necessary. Discuss
@@ -792,7 +843,19 @@ This section is usually 5-10 pages.
     \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
 \end{itemize}
 
-Separate networks, custom gradient for gumbel, gin configuration, modularity, lagrange exponent/square, custom exponential "annealing", number of optimizers
+{\bf Separate networks to predict pixels and models.} Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}.
+
+In order to implement the separate networks we use the {\tt einsum} operator in pytorch to implement "vectorized" fully-connected networks.
+
+{\bf Project structure.} The code can be found in our \href{Github repository}{https://github.com/sergeivolodin/causality-disentanglement-rl}. The code uses gin config files for modular configuration, ray tune for hyperparameter tuning, Tensorboard for tracking metrics real-time, and Sacred to save all the data from all experiments.
+
+{\bf Data collection.} We run $k$ parallel data collection processes with ray, and aggregate the data in one ring buffer process. Each minibatch is sampled as random steps from all of the collected episodes and given to the learner class. The ring buffer process maintains the ratio of collected steps to sampled steps to be at least a constant fraction $\zeta=0.5$ to prevent overfitting to only collected steps.
+
+We note that this does not result in a true distribution $\mathbb E_{h\sim (\mu\leftrightarrow\pi)}\mathbb {t\sim Uniform([T])}$. The true distribution requires us to sample one episode, select a random step, and then discard the rest of the episode. Effectively, it would require to set $\zeta=\mathbb E_{h}T$: we sample $T$ times more steps than "required". This would slow down the convergence significantly. In a minibatch from the true distribution, all the steps are likely to be from different episodes. This is important for procedurally-generated environments which have a different layout for each new episode.
+
+{\bf Number of optimizers.} Consider the loss from \autoref{eq:opt_scheme_linear_comb}. It depends on multiple groups of variables: the decoder $D$, the model $M$, the reconstructor $R$, and the matrix of probabilities $P$.
+
+custom gradient for gumbel, lagrange exponent/square, custom exponential "annealing", number of optimizers
 
 selecting coefficients
 
