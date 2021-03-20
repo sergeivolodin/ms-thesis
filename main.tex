@@ -52,6 +52,8 @@
 I thank my parents for the support in my studies, Switzerland and EPFL in particular for making it possible.
 
 I would like to also thank Nevan Wichers, Le Nguen Hoang, El-Mahdi El-Mhamdi, David Krueger, Ivan Vendrov, and Jeremy Nixon for the productive discussions in 2019-2020 on Causality and Machine Learning in general.
+
+I would like to additionally thank Roman Pogodin for introducing me to EPFL and to computational neuroscience.
 }
 
 \address{EPFL IC/SV Laboratory of Computational Neuroscience (LCN)\\
@@ -838,6 +840,7 @@ This section is usually 5-10 pages.
 \chapter{Implementation}
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
+In this chapter we discuss the specific of our implementation of \sysname. We touch such issues as the initialization of the probability metrics, tips and know-how during training, and the project structure.
 
 \subsection{Initialization}
 We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We this method to initializing with all zeros, all ones, or a random initialization in the next section
@@ -851,7 +854,7 @@ In order to assess the quality of the solution, we track the following quantitie
 
     A multiplicative version $\Delta^{mult}_{sparse}=\frac{L_p-L_{full}}{L_p}$. This value is positive when $\Delta^{add}$ is positive, and this value is less than $1$, because $L_{full}>0$
 
-    \item Number of edges in the graph, or the number of large components in the matrix $P$. We compute a k-means clustering in 1-dimensional space of all probabilities $\{P_{xx'}\}_{x\in X_{in},x'\in X_{out}}$. This gives a threshold $\tau\in[0,1]$. Next, we select the pairs $(x, x')$ such that $P_{xx'}>\tau$. This gives the answer causal graph, and the number of non-zero components.
+    \item Number of edges in the graph, or the number of large components in the matrix $P$. We compute a k-means clustering\footnote{A simple thresholding with $p=0.5$ would suffice to obtain the final graph, however, the benefit of K-means is that it works even when the training is not fully complete, and the probabilities are not fully $p_{\min}$ or $1$. This allows the see manually the preliminary results while training and quickly understand if the trial is likely to be successful.} in 1-dimensional space of all probabilities $\{P_{xx'}\}_{x\in X_{in},x'\in X_{out}}$. This gives a threshold $\tau\in[0,1]$. Next, we select the pairs $(x, x')$ such that $P_{xx'}>\tau$. This gives the answer causal graph, and the number of non-zero components.
 
     \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
 \end{itemize}
@@ -898,11 +901,57 @@ This section is usually 3-5 pages.
 \chapter{Evaluation}
 \label{ch:evaluation}
 %%%%%%%%%%%%%%%%%%%%
+In this section, we present the results of running \sysname on a number of benchmark environment that we develop, as well as on established baselines.
+We denote the resulting graph given by the algorithm as $\hat{G}_{x'x}$ for whether there is an edge from a cause variable (one at the current time-step) $x\in X_{in}=\{f_1,...,f_f,a_1,...,a_a\}$ to an effect variable (one at the next time-step) $x'\in X_{out}=\{f_1,...,f_f,r,d\}$ (see \autoref{ch:design}). The true causal graph for an environment (if exists) is denoted as $G_{x'x}$. The matrices $G_{x'x}$ and $\hat{G}_{x'x}$ have binary values $G_{x'x}\in\{0,1\}$. $1$ means that the edge is present, and $0$ means that the edge is absent. The total number of edges is $K(G)=\sum\limits_{x\in X_{in}}\sum\limits_{x'\in X_{out}}G_{x'x}$. To obtain $\hat{G}$ from $P$, a thresholding algorithm (K-Means) is applied (see \autoref{ch:implementation} and \autoref{ch:design}).
 
 \section{Environments}
-\subsection{VectorIncrement$(n)$ environment}
-\subsection{KeyChest$(h,w,f,c,k)$ environment}
+We describe the environments that we develop for this project, as well as established benchmarks.
+
 \subsection{SparseMatrix$(n,k)$ environment}
+The simplest environment we consider is SparseMatrix(n,k). Given the dimensionality of the space, we randomly sample a matrix $A\in \mathbb R^{n\times n}$ at the initialization of the environment (once per training session, i.e. the matrix is the same after a {\tt reset()}).
+
+The matrix $A$ is sampled to have $k\geq n$ non-zero component and that it is non-degenerate. We first permute the numbers $[n]$, and then set $A_{ij}:=\pm 1$.
+After that, elements $k-n$ are added to random "free" (zero) spots $A_{ij}:=\pm 1$.
+
+At each episode, the state of the environment is initialized as $s_1^i\sim N(0,1)$ for $i\in[n]$. At each time-step, the state is multiplied by the transition matrix:
+$$
+s_{t+1}=As_t
+$$
+
+The actions are ignored for this environment, and the reward is always $0$. An encoder is not applied, i.e. the environment's observation is the state.
+
+The true causal graph (without a decoder) for this environment always equals to non-zero components of the transition matrix: $G^{true}_{f_if_j}=\mathds 1_{A_{ij}\neq 0}$.
+
+\subsection{VectorIncrement$(n)$ environment}
+The state has $n$ components, and there are $n$ actions. At the beginning, the state is a zero vector $s_1=0\in\mathbb R^n$. Executing action $i$ results in an increment in the $i$'th component of the state vector:
+$$
+s^j_{t+1}=\begin{cases}
+s^j_t,&a\neq j\\
+s^j_t+1,&a=j
+\end{cases}
+$$
+
+The reward is given when the lowest component is incremented. A somewhat optimal strategy is to stay close to the diagonal of the environment:
+$$
+a_t=\arg\min \{s_t^i\big| i\in[n]\}
+$$
+
+If no encoder is applied, the ground-truth graph (without an encoder or a decoder) is given by $G_{f_if_j}=\mathds 1_{i=j}$, $G_{f_ia_j}=\mathds 1_{i=j}$, $G_{d,f_i}=1$, $G_{d,a_j}=0$, $G_{r,f_i}=1$, $G(r,a_i)=1$ for all but one action (we can always determine the action taken by all but one one-hot variables, since at every step exactly one action is taken). See Figure \ref{fig:ve5nodec}.
+
+The environment additionally supports rendering observations as images using a low-dimensional digits font, as well as optionally permuting the pixels of the observation to make it hard for humans to play.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/ve5_nodec}
+    \caption{The causal graph for VectorIncrement$(5)$ without a decoder or an encoder. First, each state component determines its own value at the next time-step. Secondly, a corresponding action increments the state component. Finally, all state components affect reward and done, and all but one action affect the reward. This one of 5 possible causal graphs for this environment (one of the actions can be disconnected from the reward node)}
+    \label{fig:ve5nodec}
+\end{figure}
+
+
+\subsection{KeyChest$(h,w,f,c,k)$ environment}
+The environment is described fully in my previous publication\cite{Volodin2020} at ICLR CLDM 2020.
+
+\subsection{NonLinearSparseMatrix$(n,k)$ environment}
 
 \section{True and learned causal graphs}
 \subsection{VectorIncrement$(5)$ environment}
