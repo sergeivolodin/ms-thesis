@@ -575,7 +575,7 @@ We also would like the model to predict the future time-steps correctly. This ca
     \item Feature-space loss. We penalize the models' features if they deviate from the features predicted by the decoder at the next time-step:
     \begin{equation}
     \label{eq:loss_fit_feature}
-    L_{fit,feature}=\mathbb E_{h\sim (\mu\leftrightarrow\pi)|T>1}\rho(M_f(D(o_t), a_t), D(o_{t+1})|t\in [T-1])
+    L_{fit,feat}=\mathbb E_{h\sim (\mu\leftrightarrow\pi)|T>1}\rho(M_f(D(o_t), a_t), D(o_{t+1})|t\in [T-1])
     \end{equation}
 
     Here, we only consider episodes that last more than $1$ time-step, because otherwise there is no "next" time-step to predict.\footnote{We do not model the "initial state" distribution, because it does not affect model simplicity in terms of $K(B)$, and it does not affect the SCM functions $F_x$, and in this project we are only interested in learning the causal graph.}
@@ -584,12 +584,31 @@ We also would like the model to predict the future time-steps correctly. This ca
 
     \begin{equation}
     \label{eq:loss_fit_obs_space}
-    L_{fit,observation}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)|T>1}\rho(R(M_f(D(o_t), a_t)), o_{t+1}|t\in [T-1])
+    L_{fit,obs}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)|T>1}\rho(R(M_f(D(o_t), a_t)), o_{t+1}|t\in [T-1])
     \end{equation}
 \end{enumerate}
 
-Next, we compare the two approaches. First, if $L_{fit, feature}=0$, it follows that $L_{fit, observation}=0$. Indeed, the reconstruction loss $L_{rec}$ ensures that the next-step features result in correct observations. And $L_{fit, feature}=0$ ensures that the features are predicted correctly.
+Next, we compare the two approaches. First, if $L_{fit, feat}=0$, it follows that $L_{fit, obs}=0$. Indeed, the reconstruction loss $L_{rec}$ ensures that the next-step features result in correct observations. And $L_{fit, feat}=0$ ensures that the features are predicted correctly.
 
+In contrast, $L_{fit,obs}=0$ does {\em not} imply that $L_{fit, feat}=0$. Indeed, the model can add the $1$-st feature to all features: $\hat{f}_i=f_i+f_1$ and indicate that by adding a large enough number to another feature: $\hat{f}_s=f_s+10\sigma[f_s]$. The decoder first determines if $10\sigma[f_s]$ was added to $f_s$, and then either subtracts $f_1$ or keeps it. This way, $L_{fit, feat}=0$, but the model does not predict the correct features. This mean that in practice, we need to use $L_{fit,feat}$, and, otherwise, the learned model function does actually predict the next features, and, thus, the causal graph might be incorrect.
+
+\begin{example}{(Incorrect causal graph when only using $L_{fit, obs}$)}
+    Consider the Game Engine from Figure \ref{fig:env2d2x2}. The features predicted by the decoder are $x$ and $y$ (not the ones in the figure).
+    The model is the following function: $\hat{x}_{t+1}=x_t+10\mathds 1_{a=+y}-10\mathds 1_{a=-y}$, $\hat{y}_{t+1}=y_t+10\mathds 1_{a=+x}-10\mathds 1_{a=-x}$.
+    It is possible to obtain $L_{fit, obs}=0$, because we can reconstruct both the previous state, and the action from $\hat{x}$, $\hat{y}$. Indeed, note that $|x_t|,|y_t|<2$. This means that, if $\hat{x}>10$, an action $+y$ was taken. The rest of the actions are reconstructed in the same way.
+    Next, knowing the actions we obtain $x_t$ and $y_t$. Next, the reconstructor performs "the function of the model", computes the (true) next $x_{t+1}$ and $y_{t+1}$, and then performs the reconstruction.
+    In case if both of input arguments to the reconstructor are $|x_t|<10$ and $|y_t|<10$, the model does not perform the time-step prediction.
+
+    The causal graph in this case is incorrect: $x$ depends on $+y$ and $-y$, and $y$ depends on $+x$ and $-x$.
+\end{example}
+
+Therefore, we have to use $L_{fit,feat}$. However, in practice, even when using the relative loss, $L_{fit, feat}<\varepsilon$ for a small $\varepsilon\in(0,1)$ does {\em not} mean that the prediction quality is good.
+
+\begin{example}
+Consider the Game Engine from Figure \ref{fig:env2d2x2}. It has $2$ latent variables: $x$ and $y$. Now, suppose that the features (not on the figure) are $f_1=x$ and $f_2=\alpha y+(1-\alpha)x$ for $\alpha \ll 1$. Suppose that $L_{fit, feat}<\varepsilon$. Does it mean that the model "preserves" the information both about $x$ and $y$? No.
+
+Indeed, for the variable $x$, $L_{fit, feat}<\varepsilon$ implies that $\rho(x,\hat{x})<\varepsilon$, as required. However, for the feature $y$, we have
+\end{example}
 
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
