@@ -29,6 +29,7 @@
 
 
 \newcommand{\sysname}{CauseOccam\xspace}
+\newcommand{\var}{\mbox{Var}}
 % CausalOccam
 % SimpleCause
 % BayesianCause
@@ -574,7 +575,7 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
 \end{example}
 
 \begin{example}{(Discrete-valued variables)}
-
+    Suppose that $y\sim Uniform([n])$ -- a discrete uniform variable taking values in $\{1,...,n\}$. $\mathbb Ey=n/2$ and $\var y=(n^2-1)/12$. In case if $\rho(y,\hat{y})<\varepsilon<\frac{1}{2n}$, we compute $P(y\neq \hat{y})=P(|y-\hat{y}|>1/n)$
 \end{example}
 
 \begin{example}
@@ -699,9 +700,28 @@ $$
 \hat{x}=F_x(fa_t\odot B_x,B_x)
 $$
 
-{\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together: $L_{rec}$, $L_{fit, feat}$, $L_{fit, obs}$, $L_{sparse}$. Ideally, we would like to find a point which jointly minimizes all of these losses. In the case of a deterministic environment, it is possible to achieve all of the losses being $0$, $L_{sparse}$ having the minimal possible discrete value.
+{\bf Separate exploration loss.} To speed up the convergence even more for the cases $p\approx 0$ and $p\approx 1$, we temporarily threshold the probabilities to be in the range $[p^{expl}_{\min},p^{expl}_{\max}]$, and fit the models with masks $B$ sampled from this distribution. This results in the loss
+\begin{equation}
+L_{fit}\big|_{p:=p^{expl}}=\mathbb E_{B\sim Be(p^{expl})} L_{fit}
+\end{equation}
+
+{\bf Optimization scheme}. Now, we have a number of losses that we would like to minimize together
+
+\begin{equation}
+\label{eq:all_losses}
+\begin{array}{lc}
+L_{sparse}&\to\min\limits_P\\
+L_{rec}&\to\min\limits_{D,R}\\
+L_{fit, feat}&\to\min\limits_{D,M,P,R}\\
+L_{fit, obs}&\to\min\limits_{D,M,P,R}
+\end{array}
+\end{equation}
+
+Ideally, we would like to find a point which jointly minimizes all of these losses. In the case of a deterministic environment, it is possible to achieve all of the losses being $0$, $L_{sparse}$ having the minimal possible discrete value.
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior.
+Such an approach, however, requires to "guess" the parameter $\lambda$.
+A much more convenient way is to either guess the target number of edges in the graph $K(B)$, or the
 
 
 Mathematically, we are searching for the decoder function such that:
