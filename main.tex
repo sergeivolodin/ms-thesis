@@ -317,7 +317,7 @@ This section describes standard methods to compute gradients with respect to a b
 
 We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probability $P_i$, and, therefore, the distribution $Be(P_i(\theta_i))$.
 
-We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods generally follows \cite{Bengio2013, Weiß2011,Maddison2017} unless stated otherwise.
+We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods generally follows \cite{Bengio2013, Weib2011,Maddison2017} unless stated otherwise.
 
 \begin{enumerate}
     \item REINFORCE gradient. Consider $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i),\,i\in[x]}\mathcal L(b_1,...,b_x)$. We split the expectation into two: $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i)}\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}\mathcal L(b_1,...,b_x)$. Next, we write $\mathbb E_{B_i}$ explicitly with $\mathbb E_{b_{\setminus i}}$ meaning $\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}$:
@@ -773,7 +773,7 @@ $$
 \mathbb E_{B\sim Be(P)}K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$.
 
-This happens because for each component, $\mathbb E_{b\sim Be(p)}b=p$. Thus, we naturally arrive at the $l_1$-relaxation of our discrete problem [cite Bengio].
+This happens because for each component, $\mathbb E_{b\sim Be(p)}b=p$. Thus, we naturally arrive at the $l_1$-relaxation of our discrete problem\cite{Bengio2013}
 
 We define this loss as:
 $$
@@ -932,7 +932,7 @@ We note that solving \autoref{eq:opt_scheme_fit_guess_granular} corresponds to s
 \min\limits_{D,M,R,P}\max\limits_{\{\lambda_i\geq 0\}}L_{agrange},\,i\in\{fitfeat, fitobs, rec\}
 \end{equation}
 
-Indeed, an an optimal point of \autoref{eq:opt_scheme_fit_guess_granular} is a saddle point of \autoref{eq:opt_lagrange} [known fact]. Roughly speaking, this happens because if a constraint is violated, any $\lambda>0$ results in an infinite value of the loss.
+Indeed, an an optimal point of \autoref{eq:opt_scheme_fit_guess_granular} is a saddle point of \autoref{eq:opt_lagrange} \cite{Franceschi2019}. Roughly speaking, this happens because if a constraint is violated, any $\lambda>0$ results in an infinite value of the loss.
 
 To solve this problem, a primal-dual descent-ascent method can be applied\cite{Franceschi2019} (here $x=(D,M,R,P)$ -- the parameters of all neural networks):
 
@@ -1180,7 +1180,7 @@ While the grounding technique is known for a long time \cite{Hofstadter1994}, my
 
 Secondly, I express a hypothesis that a learned representation is crucial when dealing with the Integrated Information Theory\cite{Tononi2016}. Currently, the theory does not seem to specify at which level of abstraction it should be applied -- at the level of atoms, or at the level of molecules? Or, maybe, at the level of individual electrical components of a computer that we examine? Specifically, it is unclear what should be the "nodes", "factors" or "variables" in the model, the dependencies between which we are to examine to compute the $\varphi$. This leads to the value of $\varphi$ potentially being arbitrarily high, if a bijective transformation is applied before the analysis\cite{Doerig2019}.
 
-If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011,Johnson}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in [epfl paper], albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
+If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011,Johnson}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in\cite{Doerig2019}, albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
 
 Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole. However, this claim does not seem to be empirically testable, at least now.
 
