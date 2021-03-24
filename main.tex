@@ -140,16 +140,16 @@ We describe the implications of our work to developing priors enforcing interpre
 
 Reinforcement learning is a general paradigm in Artificial Intelligence (AI) that considers two entities: an environment and an agent which interact with each other over multiple time-steps. The agent takes actions in the environment, and the environment gives the agent an observation representing the state of the environment, and a reward. The goal of the agent is to execute actions that lead to highest total reward during the interaction.
 
-While RL environments in general can have arbitrary complexity, practically interesting environments usually have a certain low-dimensional structure in them. For example, in the popular CartPole environment, the observation (as image) has 720 000 variables, while the dynamics of the cart can be explained using only 4 variables with a simple Newtonian update rule. Atari games, while having 100 800 variables in an observation, can be described using only 128 bytes (of the RAM state). The dynamics in the pixel space would be complex, with one pixel at the next time-step potentially depending on all of the pixels on the previous one. However, the dynamics in the latent space is much simpler. The real world has this property as well: while a camera can capture many megapixels per second observing a drone, the equations describing the dynamics of the drone only have a few variables, and are much simpler.
+While RL environments in general can have arbitrary complexity, practically interesting environments usually have a certain low-dimensional structure in them. For example, in the popular CartPole environment, the observation (as image) has 720 000 variables (pixels), while the dynamics of the cart can be explained using only 4 variables with a simple Newtonian update rule. Atari games, while having 100 800 variables in an observation, can be described using only 128 bytes (of the RAM state). The dynamics in the pixel space would be complex, with one pixel at the next time-step potentially depending on all of the pixels on the previous one. However, the dynamics in the latent space is much simpler. The real world has this property as well: while a camera can capture many megapixels per second observing a drone, the equations describing the dynamics of the drone only have a few variables, and are much simpler.
 
 
-RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or controversial content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Since the most capable agents are based on neural networks (NNs), it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability), because apriori there is no structure in the network: all variables depend on all variables of the input.
+RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or controversial content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Most capable agents are based on neural networks (NNs), and, therefore, it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability), because a priori there is no structure in the network: all variables depend on all variables of the input.
 
-Even the state-of-the-art approaches that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the outcome of a network would be in all of the input scenarios.
+Even the state-of-the-art approaches that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
 
 In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning task, with an objective of obtaining representations allowing for good explanations. In addition, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
 
-While deep neural networks allow to fit various kinds of data, but lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artifical Intelligence (AI) approaches are interpretable (explainable) but lack the versatility of neural networks: they are not applicable to all the tasks.
+While deep neural networks allow to fit various kinds of data, but lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artificial Intelligence (AI) approaches are interpretable (explainable) but lack the versatility of neural networks: they are not applicable to all the tasks.
 Such GOFA approaches are characterized by discrete symbols that are the basis of a reasoning system, i.e. first-order logic.
 These symbols correspond to real-world concepts and objects, such as the coordinates of a robot on the floor.
 The drawback of such systems is that the mapping from real-world "messy" data (e.g. images from a camera) to discrete symbols (e.g. the coordinates) is hand-designed and thus requires effort.
@@ -160,7 +160,7 @@ The quality of explanations given by such an agent would depend on the learned r
 
 The current explainable RL agents can be classified into three following categories. First, many projects learn sparse representations in terms of the feature vector sparsity: the predicted learned features associated with an observation are sparse at each time-step as a vector. Such a condition, however, is neither necessary nor sufficient for the {\em explanations} of the dynamics to be simple. Indeed, any sparse coding technique will yield sparse feature vectors (for example, by assigning the first $k$ most sparse vectors to all the $k$ states of the MDP in case of a finite MDP), but a feature at the next time-step would depend on many features at the previous time-step. Indeed, without any assumption on the way the sparse features are obtained, two neighboring states can have drastically different representations. Thus, an action potentially changes all of the variables. This demonstrates that sparse feature vectors are not sufficient to have simple explanations. On the other hand, it is possible to have simple explanations without sparse feature vectors. Indeed, the state of a CartPole environment has all of the components being non-0 most of the time, and, yet, these components comply with a simple explainable kinematics equation. Thus, sparse feature vectors are not necessary for simple explanations.
 
-Secondly, feature attribution is applied to the convolutional networks representing policies, and the analysis of circuits of the network is performed. This approach gives a) the parts of the image most relevant to predict the action and b) the visualization of what each neuron in the network is activated with. While such an approach is extremely robust to the type of the underlying agent (the analysis is performed after the training and does not require any changes in the architecture), the drawback is that it should be performed for every input image: we do not know how a particular new image would affect the outputs, since each output action still depends on all of the pixels.
+The second approach is to apply feature attribution to the convolutional networks representing policies, and the analysis of circuits of the network is performed. This approach gives a) the parts of the image most relevant to predict the action and b) the visualization of what each neuron in the network is activated with. While such an approach is extremely robust to the type of the underlying agent (the analysis is performed after the training and does not require any changes in the architecture), the drawback is that it should be performed for every input image: we do not know how a particular new image would affect the outputs, since each output action still depends on all of the pixels.
 
 Finally, a line of work is investigating {\em causal} explanations of the agents' actions. This means that a causal graph corresponding to the environment is obtained, and an explanation for an action is then a simple path-finding from the action node to the reward node in this graph. The drawback of the current projects is that the graph is either given manually (by hand), or learned with significant manual work, such as designing the feature space. In this project, we extend this line of work by making the graph learnable end-to-end from the raw observations.
 
@@ -177,7 +177,7 @@ In our approach, the decoder is a neural network, and a model is also a neural n
 
 If the the decoder is not additionally regularized for non-degeneracy, it is possible for the system to always predict constant features. This correspond to closing eyes and "predicting" successfully that everything that follows will be dark. The decoder needs to preserve the information that is relevant to the task the system is required to solve. Both in the real world, and in games, not all parts of the observations need to be predicted to achieve goals. For example, the color of an obstacle that a robot encounters is likely not important when it comes to avoiding it. However, this is task-specific, because, for example, a table is much less dangerous as an obstacle compared to water (a robot will be damaged if put into water, while an encounter with a table will likely only result in a loss of time when accomplishing a goal). Therefore, the model needs to predict task-specific features.
 
-In this project, we use the two popular types of regularization: we either predict the reward (thus, only the aspects of observations relevant for predicting the reward are kept), or the whole observation (all the aspects of the observation are represented in the latent features). This is achieved by introducing a {\em reconstructor} -- a network that predicts either the reward of the full observation given the latent features.
+In this project, we use the two popular types of regularization: we either predict the reward (thus, only the aspects of observations relevant for predicting the reward are kept), or the whole observation (all the aspects of the observation are represented in the latent features). This is achieved by introducing a {\em reconstructor} -- a network that predicts either the reward or the full observation given the latent features.
 
 Our approach allows to obtain "laws of physics" of an environment, or, more specifically, a sparse causal model representing the environment's dynamics.
 If an environment allows for a complete separation of some parts of its dynamics (for example, termination of the episode only depends on the health of the player, and another variable, such as the number of ammunition does not affect the health), out approach would capture it, because a graph with two components has less edges than a connected graph. This way, we {\em disentangle} the representation, as it consists of (recurrent) {\em independent} mechanisms.
@@ -192,7 +192,7 @@ We design a simple toy environment to illustrate learning of sparse causal model
 The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
 Sparse causal graph-based or natural language-based explanations of agent's actions would allow for faster certification of agents for mission-critical applications.
-Secondly, since the learned model the simplest one, it is likely to be less prone to overfitting. In this way, it would be easier to adjust the agent to a novel environment either without modifications (because the model relies more on a discrete set of concepts, than on the whole vector of features), or with re-training the decoder only (for example, if the shape of an obstacle has changed, only the decoder needs to be updated). For the latter part, the training should take less time, because the bulk of the problem is already solved -- the model knows how to avoid obstacles.
+Secondly, since the learned model is the simplest one, it is likely to be less prone to overfitting. In this way, it would be easier to adjust the agent to a novel environment either without modifications (because the model relies more on a discrete set of concepts, than on the whole vector of features), or with re-training the decoder only (for example, if the shape of an obstacle has changed, only the decoder needs to be updated). For the latter part, the training should take less time, because the bulk of the problem is already solved -- the model knows how to avoid obstacles.
 Third, out prior to have the simplest model could make the agent require less data to train: since it expects the underlying dynamics to be simple, it will converge to the true model faster, because a more complex model (that a regular agent is likely to take as a first guess) will be discarded.
 Next, having a disentangled representation with independent mechanisms allows to reuse components in the model, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
 Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (aprori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
@@ -233,7 +233,7 @@ $$
 
 For example, for Cartpole, $o_t$ is obtained using the kinematics equation, and $a_t$ is computed based on the velocities and the positions of the system.
 
-Another special important classes are {\em deterministic environments} -- ones where $\mu$ is a constant for every history (and not a distribution), and {\em deterministic agents} -- ones where $\pi$ is a constant given a history (and not a distribution).
+Special important classes are {\em deterministic environments} -- ones where $\mu$ is a constant for every history (and not a distribution), and {\em deterministic agents} -- ones where $\pi$ is a constant given a history (and not a distribution).
 
 In what follows, we consider Markov deterministic environments with deterministic agents\footnote{To account for the stochasticity, the decoder and reconstructor should include an additional sampling step, and noise variables should be additionally injected as potential causes into the model}.
 
@@ -265,7 +265,7 @@ $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 \label{sec:causal}
 In a nutshell, causal models are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
 
-More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$.
+More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$\footnote{We write time indices below for the whole vector $f_{\tau}=(f_1^{t=\tau},...,f_t^{t=\tau})$, and we write them above, if we additionally specify the index of the feature $f_i^{t=\tau}$}.
 
 A {\em deterministic structural causal model (SCM) with 1-step dependencies} is a set of functions $F_i$, $i\in[f]$, which output the value of the feature $i$ at the current time-step given a subset of features $PA_i$ at the previous time-step: $f_i^{t=\tau}=F_i(f_j^{t=\tau-1},j\in PA_i)$. In the following, we write $F_i(PA_i)\equiv F_i(f_j^{t=\tau-1},j\in PA_i)$. For example, if $PA_i=[f]$ for all $i\in[f]$, each feature $i$ depends on all features $j$ at the previous time-step. This is the most general case -- as all SCMs will fall into this category. However, we would like to find structure in the data: some features do not require {\em all} the features to predict them. For example, in a game the coordinate of the player is unlikely to depend on its ammunition. There could be a correlation (for example, having collected some inventory allows access to another room), but the ammunition is not required to predict the position, as we could just use the previous position, the action taken, and whether or not there are any obstacles around, instead.
 
@@ -296,9 +296,9 @@ $$
 \mathcal L=\frac{1}{T}\sum\limits_{t=1}^T(y_t-F(x_t\odot B))\to\min\limits_{F,B}
 $$
 
-Here, $y_t\in\mathbb R^y$ is the target, $x_t\in\mathbb R^x$ is the input data, nd $B\in\mathbb \{0,1\}^x$ is a binary mask.
+Here, $y_t\in\mathbb R^y$ is the target, $x_t\in\mathbb R^x$ is the input data, and $B\in\mathbb \{0,1\}^x$ is a binary mask.
 
-One (very inefficient) method to solve this problem is to a) go over all possible masks $B$ b) for each of them, find the best model $F$ c) select the most sparse $\|B\|_0\to\min$, such that $\mathcal L(B)\leq\varepsilon$ for some threshold $\varepsilon$. The complexity of such search is $\mathcal O(2^x)$, which is not feasible even for $x=20$\footnote{In our setups, even for the simplest environment, $x>20$}. In general, this problem would be NP-hard, as it is the feature selection problem.
+One (very inefficient) method to solve this problem is to a) go over all possible masks $B$ b) for each of them, find the best model $F$ c) select the most sparse $\|B\|_0\to\min$, such that $\mathcal L(B)\leq\varepsilon$ for some threshold $\varepsilon$. The complexity of such search is $\mathcal O(2^x)$, which is not feasible even for $x=20$. In our setups, even for the simplest environment, $x>20$. In general, this problem would be NP-hard, as it is the feature selection problem.
 
 We can use gradient descent on $B$ if we relax the problem. There are several methods for it.
 \begin{enumerate}
@@ -315,17 +315,17 @@ We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probab
 We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods follows [Bengio].
 
 \begin{enumerate}
-    \item REINFORCE gradient. Consider $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{b_i\sim Be(p_i),\,i\in[x]}\mathcal L(b_1,...,b_x)$. We split the expectation into two: $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{b_i\sim Be(p_i)}\mathbb E_{b_i\sim Be(p_j),\,j\in[x],\,j\neq i}\mathcal L(b_1,...,b_x)$. Next, we write $\mathbb E_{b_i}$ explicitly with $\mathbb E_{b_{\setminus i}}$ meaning $\mathbb E_{b_i\sim Be(p_j),\,j\in[x],\,j\neq i}$:
+    \item REINFORCE gradient. Consider $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i),\,i\in[x]}\mathcal L(b_1,...,b_x)$. We split the expectation into two: $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i)}\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}\mathcal L(b_1,...,b_x)$. Next, we write $\mathbb E_{B_i}$ explicitly with $\mathbb E_{b_{\setminus i}}$ meaning $\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}$:
     $$
-    L'_{\theta_i}=\frac{\partial}{\partial \theta_i}\left[p_i\mathbb E_{b_{\setminus i}}\mathcal L\big|_{b_i=1}+(1-p_i)\mathbb E_{b_{\setminus i}}\mathcal L\big|_{b_i=0}\right]
+    L'_{\theta_i}=\frac{\partial}{\partial \theta_i}\left[p_i\mathbb E_{b_{\setminus i}}\mathcal L\big|_{B_i=1}+(1-p_i)\mathbb E_{b_{\setminus i}}\mathcal L\big|_{B_i=0}\right]
     $$
     Now, only $p_i$ depends on $\theta_i$, and the expected loss $\mathbb E_{b_{\setminus i}}\mathcal L$ does not. Therefore,
     $$
-    L'_{\theta_i}=\frac{\partial p_i}{\partial\theta_i}\cdot \left[\mathbb E_{b_{\setminus i}}\left(L\big|_{b_i=1}-L\big|_{b_i=0}\right)\right]
+    L'_{\theta_i}=\frac{\partial p_i}{\partial\theta_i}\cdot \left[\mathbb E_{b_{\setminus i}}\left(L\big|_{B_i=1}-L\big|_{B_i=0}\right)\right]
     $$
-    The second multiplier on the right-hand side in the equation above is the difference between the expected losses with the variable $b_i$ on and off, while the expectation is taken with respect to all the other binary variables.
+    The second multiplier on the right-hand side in the equation above is the difference between the expected losses with the variable $B_i$ on and off, while the expectation is taken with respect to all the other binary variables.
 
-    Now, if we have a batch with sampled masks $B_i$, in which the variable $b_i$ takes the value of $1$ $N_i^{+}$ times, and the value of $0$ $N_i^-$ times, we can set up a sample mean estimate:
+    Now, if we have a batch with sampled masks $B_i$, in which the variable $B_i$ takes the value of $1$ $N_i^{+}$ times, and the value of $0$ $N_i^-$ times, we can set up a sample mean estimate:
 
     $$
     L'_{\theta_i}\approx \frac{\partial p_i}{\partial\theta_i}\cdot\left[\frac{1}{N_i^{+}}\sum\limits_{t=1,B_i^t=1}^TL(b_1,...,b_x)-\frac{1}{N_i^{-}}\sum\limits_{t=1,B_i^t=0}^TL(b_1,...,b_x)\right]
@@ -333,9 +333,9 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 
     Note that we have to have at least one sample with $B_i^t=0$ and one with $B_i^t=1$ for this expression to be valid. Otherwise, the gradient is undefined, and the update is not performed for this component of the gradient.
 
-    The drawback of such an approach is high variance, pertinent to REINFORCE estimators. The advantage is its simplicity of tuning (it has no hyperparameters), and the fact that the gradient estimate is unbiased (with increases in batch sizes $T$, the gradient tends to its true value by the Central Limit Theorem).\footnote{This is called a REINFORCE gradient because it uses the same technique -- log-likelihood trick, as the REINFORCE algorithm for Reinforcement Learning. Another way to obtain the equation is to consider the log-likelihood trick: $\partial/\partial\theta_i\mathbb E_{b_i}\mathcal L=\partial/\partial\theta_i\int p(b_i)\mathcal L(b_i)db_i=\int\partial p(b_i)/\partial\theta_iL(b_i)db_i=\int\partial \log p(b_i)/\partial \theta_i p(b_i)L(b_i)db_i=\mathbb E_{b_i}\partial \log p(b_i)/\partial\theta_i L(b_i)$. For the Bernoulli distribution, $\partial \log p(b_i)/\partial \theta_i=\frac{\partial p_i}{\partial\theta_i}\frac{1}{p_i}$ if $b_i=1$ or $-\frac{\partial p_i}{\partial\theta_i}\frac{1}{1-p_i}$ otherwise, and the denominators cancel out with the probability mass function.}
+    The drawback of such an approach is high variance, pertinent to REINFORCE estimators. The advantage is its simplicity of tuning (it has no hyperparameters), and the fact that the gradient estimate is unbiased (with increases in batch sizes $T$, the gradient tends to its true value by the Central Limit Theorem).\footnote{This is called a REINFORCE gradient because it uses the same technique -- log-likelihood trick, as the REINFORCE algorithm for Reinforcement Learning. Another way to obtain the equation is to consider the log-likelihood trick: $\partial/\partial\theta_i\mathbb E_{B_i}\mathcal L=\partial/\partial\theta_i\int p(B_i)\mathcal L(B_i)dB_i=\int\partial p(B_i)/\partial\theta_iL(B_i)dB_i=\int\partial \log p(B_i)/\partial \theta_i p(B_i)L(B_i)dB_i=\mathbb E_{B_i}\partial \log p(B_i)/\partial\theta_i L(B_i)$. For the Bernoulli distribution, $\partial \log p(B_i)/\partial \theta_i=\frac{\partial p_i}{\partial\theta_i}\frac{1}{p_i}$ if $B_i=1$ or $-\frac{\partial p_i}{\partial\theta_i}\frac{1}{1-p_i}$ otherwise, and the denominators cancel out with the probability mass function.}
 
-    In order to keep the values of $p_i$ in $[0,1]$, we simply project to $[0,1]$ after each gradient step: if $p'_i>1$, we set $p_i=1$, and the same for $p'_i<0$.
+    In this approach, $\theta_i\equiv p_i$. In order to keep the values of $p_i$ in $[0,1]$, we simply project to $[0,1]$ after each gradient step: if $p'_i>1$, we set $p_i=1$, and the same for $p'_i<0$.
 
     \item Straight-through estimator. We set $\theta_i\equiv p_i$ and simply ignore the fact that there was sampling:
     $$
@@ -397,7 +397,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
 
 
-    \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $b_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
+    \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $B_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
     \item Custom gradient from LCN [cite!] [compare with no-logits-Gumbel]
 \end{enumerate}
 
@@ -602,6 +602,54 @@ While in practice, it would be hard to find such a function with gradient descen
 These examples show that it is important to set the complexity of the model's neural networks correctly. A too simple model would never fit the environment, and a too complex model can give non-interpretable features.
 
 A practical way to choose the measure of complexity is to first fit a model without sparsity constraints, select one with minimal complexity still fitting the data, and then run \sysname.
+
+{\bf Examples.} We discuss how we expect this approach to work in a wide range of environments, and compare it to another interpretability technique where each action is associated in a change in a single feature. We call the latter the "single-feature action influence framework".
+
+The single-feature action influence framework fails in case if an action influences two features, and it does not put constraints on features that are not directly affected by agent's actions (such as movements of objects in the environment). Our approach can be seen as an extension of the single-feature action influence framework in a sense that in case if an environment allows for such a parameterization, our approach would find it as well. Indeed, a single action influencing a single feature exactly corresponds to a minimal number of edges from actions to features.
+
+\begin{example}{(2D grid-world navigation task, Figure \ref{fig:env2d2x2})}
+    Consider an environment giving 2D images of size $H\times W$ as an observation, and taking 4 actions (left (decrease horizontal coordinate), right (increase horizontal coordinate), up (increase vertical coordinate), down (decrease vertical coordinate)). While the actions correspond to coordinates, the coordinate variables are latent (hidden) from the agent, as it receives observations instead. In the latent space, the dynamics is very simple: each action only influences one coordinate, and the transition equation is simple as well.
+
+    If we apply our approach to this environment, it would uncover this latent representation, guided only by the simplicity of the resulting transition model.
+    The model in this space has $6$ edges: each of the two features depends on itself from the previous iteration (2 edges), and each action influencing one feature component (4 edges).
+
+    For this environment, the simpler approach to associate an action with a feature component works as well. However, the loss would not be $0$, as an action does not always influence the state (at the boundaries an action does not do anything). Note that this approach also works for 3D navigation with $3$ latent feature components and $9$ edges in the graph.
+\end{example}
+
+\begin{example}{(MountainCar)}
+    We consider two possible parameterizations. One uses Cartesian coordinates $x$ and $y$ (and their velocities), and the other uses the linear position of the car on the track (and its velocity).
+
+    The Cartesian coordinates result in an interpretable model with physically realistic equations. However, in this parameterization, an action influences both of the coordinates, as the car moves both in $x$ and $y$ directions.
+
+    The linear coordinate is compliant with the single-feature framework, but the dynamics equation becomes more complex (the gravity depends on the angle of the track).
+\end{example}
+
+
+\begin{example}{(CartPole with images as observations.)}
+    Consider the CartPole environment from OpenAI Gym. The latent state has 4 components (the positions and the velocities of the cart and the pole).
+    The model in the latent space has $8$ edges: features depend on themselves (4 edges), velocity influencing the coordinate (2 edges) and action influence (2 edges changing the coordinate slightly).
+\end{example}
+
+\begin{example}{(Atari Breakout)}
+    The objects can be grouped into the pallet that is controllable by the player (1 horizontal coordinate), two coordinates for the ball, and 2 coordinates of each of the individual pieces that need to be destroyed.
+
+    Note that while the single-feature influence model disentangles the coordinate of the pallet from the rest of the features, it does not put any constraints on the representation for the ball or for the destroyable pieces: they can be represented in any possible way.
+\end{example}
+
+\begin{example}{(MsPacman)}
+   The number of lives is a separate feature, the positions of the ghost, of food pallets, of the cherry, of the player are features as well.
+
+   Note that the single-feature action influence approach again would obtain a good representation for the Pacman (because its coordinates are affected by the actions directly), but does not enforce any constraints to obtain a good representation for the ghosts, the food, and the cherry.
+\end{example}
+
+\begin{example}{(Montezuma revenge)}
+    The representation contains the coordinates of the player and other objects, as well as the current room the player is in.
+\end{example}
+
+\begin{example}{(Humanoid)}
+    The representation contains the joint position and velocities, as defined in the MuJoCo environment file. The dynamics equation corresponds to the physics equations from the simulator.
+\end{example}
+
 
 \section{Optimization problem for \sysname}
 \begin{figure}[h]
@@ -1131,245 +1179,6 @@ Because of this connection between $\varphi$ and sparsity, our approach can be s
 % \item Crayons
 % \item A self-aware 5-year old
 % \end{itemize}
-
-\chapter{OLD text, to copy-paste and remove}
-\section{Introduction}
-Consciousness prior, AIXI lead to simple or sparse models.
-
-Disentangled representations and representation learning
-
-Model-based reinforcement learning
-
-Causal modelling for reinforcement learning. Interventions
-
-AI safety: distributional shift robustness (generalization), interpretability, sample-efficiency
-
-\section{Proposed architecture}
-\subsection{Theory}
-Like in AIXI, would like to find the simplest model of the environment:
-$K(\mu)\to\min$ s.t. $L(\mu, data)\to\min$. In general, this problem is uncomputable.
-
-We decompose the model into a Decoder and a sparse Model. The model in observational space $W$ is then the sparse Model $M$ applied to Decoded features, with the result projected back into the high-dimensional space.
-$$
-W=D^{-1}MD
-$$
-
-\subsubsection{Why sparse models?}
-Traditionally, sparsity of models usually means making the number of non-zero parameters low. This can be seen in linear regression when applying the Lasso regularization. Such methods learn to rely only on a handful of features, instead of considering the whole input. When data is multicollinear, this leads to better generalization, as the model only relies on the most salient features, and is less likely to learn spurious correlations between features.
-
-In Supervised Deep Learning, sparsity of representation traditionally means regularizing the activation of the latent hidden layer in an autoencoder-like setup (an encoder transforming a high-dimensional representation into a low-dimensional one, and then a decoder doing the inverse transform back to the high-dimensional space). In such setups, sparsity is enforced in order to enforce constraints on the learned latent space. With such regularization, the model is learning a sparse coding -- one where each input is represented with a minimal number of non-zero components.
-This representation is better than a "dense" one, in case if there are certain regularities in the dataset.
-For example, if the input images have an underlying latent generative model in which the high-dimensional image is a "child" of only few discrete variables (such as, a cat can only be of certain colors, which can be represented in a one-hot way, and other images, such as images of dogs, can be distinguished from images of cats by another binary variable).
-In neuroscience, such representations are biologically plausible due to lower energy usage and higher fault tolerance [??].
-
-However, sparse representation does not necessarily imply interpretability. In supervised tasks, it it known that [Google post on disentanglement] the model still learns spurious correlations, which leads to different controllable aspects of the image being "entangled" in one activation node.
-
-Spurious correlations in supervised learning do not have a general way of being resolved, because observational data is not enough to learn the correct causal model. An example of this is adversarial images, which can be seen as spurious correlations, namely, the model relying on high-frequency features which, while discriminating between images on the training set due to high memorizing capacity of the network, do not generalize to the shifted adversarial distribution [features not bugs post].
-
-While the problem of learning good models from observational data is interesting in its own right, in this project we focus on a reinforcement learning setting where there is a possibility to perform actions. Since switching from one policy to another determines the distribution of histories, switching from one policy to another can be seen as performing interventions on the underlying causal graph. In this way, for example, an agent playing Breakout by precisely targetting each block one-by-one is different from an agent trying to put the ball to the top of the playing field, speeding up the process significantly. If we consider the underlying data generation process in the latent space of positions of various objects (x and y coordinates of the ball, the player and all the targets), and in an interaction between them, and a similar representation for the agent (for example, the first agent's action depends on the leftmost still-standing target, which it hits perfectly, and the second agent's action depending as well on whether or not there is an opportunity to get to the top), switching from one policy to another can be seen as an intervention in this history-generating graphical model, in which the gate switching the dependencies of the policy's action is altered, and set to $1$ instead of $0$, signifying the reliance to the second strategy.
-
-While the total space of policies is represented with exponentially many such switch nodes (namely, one node for each subset of coordinates the policy can possible depend on, and one node for every discretized value of the weights of a neural network, for example), some of them are more complex than others.
-
-We start the theoretical derivation from the AIXI framework, where the environment is a Turing machine, and the agent is a non-computable greedy best-response Bayesian solution considering all possible environments. Theoretically, such agent is known to have certain optimality conditions under the assumption of sufficient exploration. Compared to Solomonoff  induction (a perfect uncomputable Bayesian solution to the online supervised learning problem, or the task that the GPT-3 solves -- self-supervised prediction), in RL, AIXI (which is designed in the same way as the Solomonoff induction) is not always optimal. Indeed, it was discovered that AIXI does not explore enough, because there are bad priors leading to the agent "believing" that it is not beneficial to explore. In the simplest setting, we can always select such a prior where the probability of the true environment, and of any sufficiently close-by environment leading to rewards when taking action $a_1$ is arbitrarily low, leading to the agent never trying $a_1$, and, thus, never updating its posterior [On the optimality...].
-
-General theory of RL suggests solutions to this problem, leading to weaker convergence results [Thompson sampling]. The basic idea is to let go of the agent being perfectly Bayesian, and (knowingly) use an outdated model to take actions. Intuitively, this 'denial' leads to even improbable actions being taken into consideration, and, thus, has more chances of discovering the true posterior.
-
-The Solomonoff Bayesian setting considers weighting the environment models by their complexity.
-
-In this setting, we consider the prior over environments $\mu$, $\xi(\mu)=2^{-K(\mu)}$ where $K$ is the Kolmogorov complexity. Next, we collect history using a policy $\pi$, which gives a Bayesian posterior:
-
-$$
-\nu(\mu|h)=\frac{\mu(h)2^{-K(\mu)}}{\sum_{\nu}\nu(h)2^{-K(\nu)}}=\frac{\mu(h)\xi(\mu)}{\xi(h)}
-$$
-
-Given the posterior $\nu'=\nu|h\equiv \nu(\mu|h)$, we "simply" run an infinite tree search to find the best possible action:
-$$
-a_t^{AIXI}=\arg\max_{a_t}\sum\limits_{t=t_0}^{\infty}\gamma^t\sum_{r_t,s_t}\nu'(r_t,s_t|r_{<t}s_{<t}a_{<t})
-$$
-
-Here, $\xi(h)$ is the prior probability of the data, or the probability of history in the Universal Environment (a mixture of environments where each environment is weighted with its complexity).
-
-In practice, it is not viable to search over all possible Turing machines (which is required to evaluate the denominator, $\xi(h)$), and we cannot run them for an infinite number of time-steps (like it is done in AIXI). Another problem here is that we cannot compute $K(\mu)$.
-
-To make the problem practical, we additionally assume that there is a structure to the environment.
-
-Namely, we assume that for the whole environment there exist a mapping $f\colon o\to f$ which maps observations to features. For a while, we assume deterministic environments. We also assume 1 time-step dependencies (Markov property). Given our feature assumption, we assume that in the feature space, the dynamics of the environment is linear (inherent simplicity??). We only consider environments $\mu$ which are representable (we consider $r_t$ as part of $s_t$ for simplicity of notation here) as
-$$
-f_t(\mu)=M_ff_t+M_aa_t+b
-$$
-
-{\bf OMG}
-
-
-
-
-
-Here, $f_t=D(s_t)$ and $s_t=R(f_t)$
-
-Imagine if the representation $f$ is sparse at every time-step. Does this guarantee an interpretable environment?
-
-From the point of view of the Free Energy principle, we are looking for a minimal Markov Blanket.
-
-From the point of view of the leading theory of consciousness, Integrated Information Theory. Why do we look for sparsity, when consciousness there is about irreducibility of a big model into smaller models? IIT does not specify which representation of the physical world needs to be mapped to the nodes in the causal graph, while we have a decoder which learns this representation, and selects one where the model is the simplest one. Tononi says that we should pick the representation with maximal $\phi$, but, it seems, In our case, something not affecting the reward (or the reconstruction in general), would be independent of causal variables that are optimized for. Thus, such a variable would be unconscious. The project can be seen as computing a proxy for $\phi$ -- minimizing the complexity. Such an interpretation of IIT (allowing for an arbitrary function computing the representation, and minimizing over complexities/$\phi$) could resolve the issues raised in \cite{doerig2019unfolding}. There, a function is applied to the representation, after which an inverse transform is applied. If we only care about the minimal-$\phi$ representation, all of that would be cancelled, and only the high-level variables would remain.
-
-
-What if the decoder is too complex? We could re-use components, like humans don't need to re-learn existing conv1 filters to learn a new game.
-
-In the model, we can sample from a categorical gumbel-softmax distribution in order to select a model. We can re-use models for different features. Each of the feature models has a categorical distribution over the bank of models, and we regularize for the total entropy of all models (with an addition that we can permute the features in arbitrary way before applying the model).
-
-
-The total complexity of the environment $\mu$ is thus $K(\mu)=K(M_a)+K(M_f)+K(D)+K(R)$
-
-
-$\mu(h)\equiv \mu()$
-
-Finding good features by regularizing the {\em model} to be sparse.
-
-Three losses: model fit, sparsity regularization, reconstruction
-
-Reconstruction losses: inverse decoder norm, reconstructing observations (autoencoder), inverse model norm (we force the model to be an invertible matrix), predicting actions, predicting value function from features (like in muzero)
-
-Causal learners: linear, graph NNs, linear with sampling
-
-For the model fit, we use Mean Squared Error. Alternatives are to use contrastive loss (with fake samples)
-
-For the sparsity, we use L1-regularization. An alternative is to use projection.
-
-Architecture improvements: model at each layer of the decoder for a faster fit, many time-steps, batch normalization, adaptive sparsity loss
-
-
-
-\section{Model learning for a fixed policy}
-The problem of learning a model is formulated as follows. Given a deterministic RL environment $\mu$ and a policy $\pi$, we want to find a function computing the next observation: $o_{t+1}=M_o(o_t, a_t)$. Additionally, we would like to learn the reward and the termination ("done"): $r_t=M_r(o_t, a_t)$, $d_t=M_d(o_t, a_t)$. Since observations are high-dimensional, we require the model to be represented as a composition of a decoder, a model in the feature space, and a reconstructor: $o_{t+1}=R(M_f(D(o_t), a_t))$. If we denote $f_t=D(o_t)$, we can additionally require $D(o_{t+1})\approx M_f(f_t, a_t)$. In this case, the function $M_f$ is a {\em model in feature space}. If we additionally require $R(D(o_t))\approx o_t$, the function $R$ becomes the inverse for the decoder.
-
-Training the reconstructor is usually the most time-consuming part, since it requires to train a generative model for high-dimensional observations. Therefore, several techniques are applicable to avoid this part. In these cases, a full model in observation space is not obtained.
-\begin{enumerate}
-    \item Margin loss in the space of observations. For observations $o_1\neq o_2$, we require that $\rho(D(o_1), D(o_2))\geq h$ via a margin loss: $\max(h-\rho, 0)\to\min$
-    \item Contrastive loss: we train a classifier $C(f, f')$ with a loss $\frac{C(f_t, f_{t+1})}{C(f_t, f_{t+1})+C(f_t, f_{neg})}\to\max$ where $f_{neg}$ is not equal to the true feature $f_{t+1}$
-    \item Training a discriminator with labels $C(f_t, f_{t+1})\approx 1$, $C(f_t, M_f(f_t, a_t))\approx 0$, and with a separate optimizer training for $C(f_t, M_f(f_t, a_t))\approx 1$ (GAN)
-    \item Instead of predicting high-dimensional observations, only predicting some sufficient (in the sense of playing the game) statistic, such as the value function: $V_f(D(o_t))\approx V(o_t)$, where $V_f$ is a trainable value-to-go predictor, and $V(o_t)$ is the reward-to-go collected at the episode.
-\end{enumerate}
-
-{\bf Sampling procedure.} Since we would like the model to approximate the next observation $o_{t+1}\approx M_o(o_t, a_t)$, we must sample triples $(o_{t+1}, o_t, a_t)$ (and other related features such as reward, termination, or reward-to-go) from the uniform distribution: we randomly sample an episode, and then pick a random observation. This would mean that we only keep one step from a whole episode. This is not practical, as we have to "throw away" most of the steps. We approximate this with an experience replay buffer. In case if the environment "looks differently" for different initialization random seeds (for example, the labyrinth has a different layout), such an approximation results in the following issue. If we sample a mini-batch from 1 episode, and the subsequent mini-batch from another (single) episode, the model would tend to overfit to the first mini-batch (specifically, for example, to the locations of objects in the labyrinth). On the next call, the loss will spike, and the model will overfit to the next object locations. Having an experience replay buffer and sampling the triples randomly from it alleviates the issue. This is the same problem as was encountered in the DQN paper.
-
-In practice, we use the mean-squared regression. To account for different scales of observation components, feature components and rewards, we compute the {\em relative} mean absolute error:
-$$
-L_{rel-mse}(f^{pred}, f^{true})=\frac{1}{T}\sum\limits_{t=1}^T\sum\limits_{f=1}^F\left[\frac{f^{true}_{f,t}-f^{pred}_{f, t}}{\sigma'(f^{true}_{f, \cdot})}\right]^2
-$$
-
-Here $\sigma(f^{true}_{f, \cdot})$ is the standard deviation for the true features. In case if this value is less than $\varepsilon=10^{-8}$, we set this value to $1$. This is required for the case of constant pixels, or constant features. Setting this value to $\varepsilon$ instead of $1$ produces extremely high loss spikes in case if in some of the batches, a feature is constant, and in others, it is not.
-
-The relative loss $L_{rel-mse}$ is more interpretable than the standard mean-squared-error loss, because its value signifies how many features have a large error. For example, for $10$ equal features with equal predictions, a value $L_{rel-mse}=10$ means that for all features, the prediction error is equal to the standard deviation. More importantly, a value $L_{rel-mse}=10^{-2}$ means that for each of the features, the relative error is at most $10\%$ in terms of the standard deviation.
-
-\begin{itemize}
-    \item Reconstruction loss: $L_{rec}=L_{rel-mse}(R(D(o_{x})), o_{x})$. Here we denote values before (and while) taking an action as $x$, and values at a step immediately after taking an action as $y$. In this notation, for example, $o_{x, t+1}=o_{y,t}$
-    \item Prediction loss in observation space: $L_{pred}=L_{rel-mse}(R(M_f(D(o_{x}, a_{x})), o_{y})$
-    \item Feature consistency loss in feature space: $L_{cons}=L_{rel-mse}(M_f(D(o_x, a_x)), D(o_y))$
-\end{itemize}
-
-Both of the losses $L_{pred}$ and $L_{cons}$ are required to obtain good features. First, training with $L_{pred}$ allows to have an end-to-end model, where the right-hand side does not depend on the decoder. This becomes a supervised learning problem. Secondly, without optimizing for the feature consistency loss, $L_{pred}=0$ does not guarantee that $L_{cons}=0$, since the reconstructor can "recognize" two different sets of features. In this case, output features from the model do not necessarily correspond to the input features.
-
-Since we would like to obtain an interpretable model, we add the feature consistency loss $L_{cons}$.
-
-{\bf Separate models for each feature and each pixel.} Empirically, in our test toy environments (VectorIncrement and KeyChest), the tasks of predicting different pixels with a reconstructor $R$ do not have many information in common, and, therefore, are poor tasks for multi-task learning. Empirically, predicting each pixel $i$ with a separate model $R_i(f)$ converges faster than having a joint neural network $R(f)$.
-
-\section{Sparse model learning}
-Suppose that we have reasonably low losses $L_{rec},\,L_{pred},\,L_{cons}<\varepsilon$. This means that for each of the output pixels, we can predict it with relative error at most $\varepsilon$. In addition, the same applies to the relative error in predicting each feature.
-
-In the space of all reconstructors, decoders and models, we would like to find a model which is most sparse in the sense of a causal graph. This means that, for each output feature $f_j$, we would like it to depend on the fewest amount of input features $f_i$. Given that, the graph of dependencies in the feature space is most sparse (in terms of the number of edges), or, the program describing the environment is most simple.
-
-To do so, we use the model from Bengio. We use a tensor of probabilities of shape $p=(F+F', F+A)$, where $F$ is the number of features, $F'$ is the number of additional features to predict (2 -- reward and termination), and $A$ is the number of actions. This tensor has values between $0$ and $1$. The values are interpreted as probabilities of having an edge from feature $f_i$ to feature $f_j$: if the value is $1$, the feature $f_j$ depends on $f_i$ with probability $1$.
-
-Given such a tensor of probabilities, we can sample random variables $\xi\sim p$, where $\xi$ is a binary matrix of dimensions $(F+F', F+A)$ with values in $\{0, 1\}$. Now, if an edge is not present in the graph, the model for a feature should not depend on the corresponding input feature. We achieve this by multiplying the input with this tensor $\xi$. Next, we have $F+F'$ models predicting each feature, each depending on the input multiplied with the binary mask $\xi$.
-
-Having $F+F'$ independent models instead of having one big model with $F+F'$ outputs has the same advantage as stated before for the reconstructor $R$: since the tasks do not have a lot in common, the convergence is faster if the networks are independent.
-
-In addition, the model receives the mask $\xi$ apart from the input $[f_t, a_t]\odot \xi_i$. This is necessary because the model needs to "know" whether it has received $0$ as input because the feature is $0$, or because the feature was "de-selected".
-
-Suppose that we have a dataset of triples $\{(f_{t+1}, f_t, a_t)\}$. We sample masks $\xi_t$ for every time-step $t$. For this example, we set $p_{ji}=0.5$ for all features. The loss $L_{pred}$ and $L_{cons}$ becomes a random variable, because the inputs a pre-multiplied by random masks. If we fit the model on this data (in a supervised way), it will learn to rely on features if they are present, and to replace them with a "mean value" in case if they are not. We can optimize the parameters of $R, M, D$ using gradient descent. Now, how to obtain the gradient with respect to $p$?
-
-The well-known trick is Gumbel-Softmax, which can yield $\frac{\partial L}{\partial p}$ given samples. However, since it internally uses saturating softmax,  it takes a lot of time in practice to obtain a value close to $1$. Even in the mostly-linear regime, it takes a lot of time to optimize for parameters $p$, because the gradient is multiplied by $\sigma(\cdot)(1-\sigma(\cdot))$. Instead, we use the REINFORCE gradient:
-
-$\frac{\partial L}{\partial p}=\frac{\partial}{\partial p}\mathbb{E} L(\xi(p))=\frac{\partial}{\partial p}\mathbb E_{\xi_{11}}...\mathbb E_{\xi_{nm}}L(\xi_{11},...,\xi_{nm})$.
-
-Now, consider one-dimensional case and $\frac{d}{dp}\mathbb E_{\xi\sim F(p)}L(\xi)=\int \frac{d}{dp}f_p(\xi)L(\xi)d\xi$. Now, using the log-likelihood trick, $\frac{df_p(\xi)}{dp}=\frac{d\log f_p(\xi)}{dp}f_p(\xi)$. Therefore, $\frac{d}{dp}\mathbb E_{\xi\sim F(p)}L(\xi)=\int\frac{d\log f_p(\xi)}{dp}f_p(\xi)L(\xi)d\xi=\mathbb E_{\xi\sim F(p)}\frac{d\log f_p(\xi)}{dp}L(\xi)$. In case of discrete distributions, we need to replace the probability density function $f_p(\xi)$ with the probability mass function $F_p(\xi)$
-
-For the Bernoulli distribution, this gives $\frac{d}{dp}\mathbb E_{\xi\sim Be(p)}=\sum_{\xi\in\{0, 1\}}\frac{d\log F_p(\xi)}{dp}L(\xi)$. Since $F_p(1)=p$ and $F_p(0)=1-p$, we obtain $\frac{d}{dp}\mathbb E_{\xi\sim Be(p)}=L(\xi=1)-L(\xi=0)$.
-
-In case if we have many random variables $\xi_{ji}$, we can set $L(\xi_{ji})=\mathbb E_{\xi_{-ji}}L(\xi_{ji}, \xi_{-ji})$, and then obtain $\frac{\partial }{\partial p}L_{rel-mse}=\mathbb E_{\xi_{-ji}}L_{rel-mse}(\xi_{ji}=1, \xi_{-ji})-\mathbb E_{\xi_{-ji}}L_{rel-mse}(\xi_{ji}=0, \xi_{-ji})$.
-
-In practice, given a sample of $\xi$ of shape $[T, F+F', F+A]$, for a pair of features $j, i$, we select the values of the loss $L_{t}$ where $\xi_{t, j, i}=1$, and take the average of such $L_t$ to obtain a sample estimate of $\mathbb E_{\xi_{-ji}}L_{rel-mse}(\xi_{ji}, \xi_{-ji})$. The same procedure is applied for the values of $t$ where $\xi_{t, j, i}=0$. This corresponds to running $F+F'\times F\times A$ "randomized control trials" to establish the effect of $\xi_{ji}$ on $L$, and computing the difference in means. This way, we manually compute the gradient for each $p_{ji}$.
-
-While REINFORCE gradients are known to be noisy, here we only have two values, and sample sizes are considerably large for large batch sizes $T\sim 5000$ and $p\sim 0.5$. By the central limit theorem, the sample means are close to the true expectations. After applying the gradient, the probabilities $p$ are clipped to be between $0$ and $1$.
-
-Note that the problems of estimating the gradient are not independent, in a sense that a gradient with respect to $\xi_{ji}$ depends on values of $p_{-ji}$. This happens because the values of the loss depend on these features as well.
-
-To turn the features off, we introduce a sparsity regularizer. To ease this even more, we add a version of the losses with $p=0.5$ (regardless of the true value of $p$). To train the model faster, we add a version of the loss with $p=1$ as well.
-
-Denote $L_{model}=L_{pred}+L_{cons}$. Given the two other versions with $p=0.5$ and $p=1$ we have also $L_{model}^{p=0.5}$ and $L_{model}^{p=1}$.
-
-\subsection{Annealing.} To learn a sparse model, we additionally regularize the probabilities $p$ for sparsity as $L_{sparse}=\sum_{ij}|p_{ij}|$. The total gradient for $p$ is a sum of gradients from $L_{sparse}$ and the REINFORCE gradient from $L_{pred}$ and $L_{cons}$.
-
-Consider the relative error ("relative sparsity gap") $\gamma(R, D, M, p)=\frac{L_{model}^{p=p}-L_{model}^{p=1}}{L_{model}^{p=p}}$. It shows how the loss given the current selected features compares to enabling all features. For a any fixed $p$ and any $D$, if we fit the $M$ and $R$ on $L_{model}$ and $L_{model}^{p=1}$ (note that there is no conflict between these two losses, because masks uniquely determine whether the features are on or off. Essentially, this is a big supervised dataset), the value of $\gamma\in[0, 1]$: turning off some features can only increase the loss. In case if $p<1$ and $\gamma=0$, the output does not depend on the input. If $\gamma=1$, the model perfectly fits the data ($L=0)$ with $p=1$ (this does not happen in practice). $\gamma=0.5$ means that the error could decrease $50\%$ in case if we turn on all features.
-
-An additive error $\delta(R, D, M, p)=L_{model}^{p=p}-L_{model}^{p=1}$ is in range between $0$ (if model is trained) and $N=F+F'$ (in case if model can perfectly fit the data and $p=0$). Therefore, we consider the ratio $\Delta(R, D, M, p)=\frac{\delta(R, D, M, p)}{F+F'}\in[0, 1]$.
-
-Annealing proceeds in the following stages:
-\begin{enumerate}
-    \item $\delta>\delta_{\max}$. In this case, the model is trained to decrease $L_{model}^p$, which increases some $p$. Sparsity coefficient is decreased (we care more about fitting any model rather than about sparsity).
-    \item $\delta\leq \delta_{\max}$. In this case, we care about sparsity and increase the coefficient. In case if at some point, $\delta$ crosses the threshold, we do not change the coefficient for some time, to allow the model to learn from a dataset where some features are turned off. This "freezing" at a "low temperature" allows the model to "crystallize" and learn a new representation (one where some features are turned off).
-\end{enumerate}
-
-Consider the following cases:
-\begin{enumerate}
-    \item $p=p_{\min}$. In this case, the model cannot predict features reliably: even in the toy example above, the error would be $L\sim 2\times (1-p)\approx 2$ for 2 features -- very bad result for a relative error. In this case, the REINFORCE gradient will turn on features yielding maximal decrease in the loss.
-    \item $p=1$. In this case, we would like to turn off some of the features, because we would like to obtain the most sparse model.
-\end{enumerate}
-
-Overall we would like to find the sparsest graph such that the sparsity gap does not exceed some $\varepsilon_{\max}$:
-$$
-\min L_{sparse}\,s.t.\,\delta\leq \varepsilon_{\max},L_{model}^{p=1}+L_{rec}\leq \varepsilon_{loss}
-$$
-
-This is a constrained optimization problem. There are several approaches to this problem:
-\begin{enumerate}
-    \item Static linear combination: $\frac{L_{sparse}}{NM}+\frac{L_{model}^{p=p}+L_{model}^{p=1}}{2N}+\frac{L_{rec}}{O}$
-    \item Dynamic linear combination: $\frac{L_{rec}}{O}+\frac{L_{model}^{p=1}+L_{model}^{p=p}}{2N}+\beta L_{sparse}$ where $\beta$ is chosen based on the value of $\delta$ as described above
-    \item Lagrange multipliers. We consider $\mathcal L(\lambda, D, M, R)=L_{sparse}+\lambda (L_{rest}-\varepsilon_{rest})$. The point with $\max_{\lambda}\min_{D, M, R}\mathcal L$ corresponds to $L_{sparse}\to\min$ s.t. $L_{rest}\leq\varepsilon_{rest}$. The standard solution is a primal-dual method:
-    $$\lambda_{t+1}=\lambda+\eta\frac{\partial \mathcal L}{\partial \lambda}$$
-    $$(D, M,R)_{t+1}=(D,M,R)-\eta\frac{\partial\mathcal L}{\partial (D, M, R)}$$
-\end{enumerate}
-
-\section{Environments}
-\begin{enumerate}
-    \item VectorIncrement. Recovering a sparse linear matrix from skewed observations
-    \item KeyChest. Learning a sparse causal graph in a grid-world
-    \item Physics environments. Learning physics laws
-    \item Atari: MsPacman, Montezuma Revenge. Learning a better representation than pixels
-    \item PyGame learning environment (flapping bird)
-    \item Starcraft. Learning in high-dimensional environments
-    \item VIZDoom. Learning abstract features
-    \item TextWorld. Extracting a low-dimensional model governing the decisions
-    \item OpenSpiel. Finding good representations automatically for known games
-\end{enumerate}
-
-\section{Results}
-
-\begin{enumerate}
-    \item Can fit a sparse model on VectorIncrement with pinverse sparsity loss, fully-connected nets and value function for reconstruction
-    \item Can train agent on KeyChest (DQN and PPO) demonstrating that it is Markov
-    \item Can fit a sparse model (without sparsity regularization) ignoring actions that somewhat well predicts the health (but not health increase, only decrease)
-    \item Cannot fit a VAE, AE, VAE-GAN on KeyChest data for some reason
-\end{enumerate}
-
-\subsection{What does MuZero learn}
-\subsection{Learned graphs for our environments}
-\subsection{Game complexities}
-\subsection{Properties of the new agent}
-\subsubsection{Spurious correlations and exploration speed}
-\subsubsection{Sample efficiency}
-\subsubsection{Online DS robustness (re-training speed)}
-\subsubsection{Offline DS robustness (deploying into the environment)}
 
 \cleardoublepage
 \phantomsection
