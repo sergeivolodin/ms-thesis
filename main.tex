@@ -403,7 +403,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 
 
     \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $B_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
-    \item Custom gradient from LCN [cite!] [compare with no-logits-Gumbel]
+    \item Custom gradient from LCN\cite{bellec2018long} [compare with no-logits-Gumbel]
 \end{enumerate}
 
 In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
@@ -1120,11 +1120,11 @@ Other approaches involve sparse feature vectors for interpretability \cite{Weins
 
 \cite{Ehsan2018} apply natural language explanations to Reinforcement Learning.
 
-Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
+Simple mathematical equations can describe our world well \cite{Hamming1980}. We assume that the environments in RL that we are interested in are also describable by such equations.
 
 \cite{Everitt2019} use the tools of causal reasoning to interpret agents.
 
-\cite{Battaglia2018} introduces Graph Neural Networks\cite{Zhou2018} (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
+\cite{Battaglia2016} introduces Graph Neural Networks\cite{Zhou2018} (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
 
 \cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
 
@@ -1132,11 +1132,11 @@ Simple mathematical equations can describe our world well \cite{hamming1980unrea
 
 Libraries: pytorch-geometric, graph-nets from DeepMind
 
-\cite{Genewein} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees.
+\cite{genewein2020algorithms} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes. The paper does not provide a way to construct the probability trees.
 
-\cite{Zambaldi2018} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to. Similar technique can be seen in \cite{Hahne2019} to solve visual reasoning tasks (similar to IQ tests)
+\cite{zambaldi2018relational} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. The attention on the charts seem to favor one object attended to, corresponding to the ground truth next item to go to. Similar technique can be seen in \cite{hahne2019attention} to solve visual reasoning tasks (similar to IQ tests)
 
-\cite{Xie2020} introduce latent variables into the learned linear causal models using statistical tests.
+%\cite{Xie2020} introduce latent variables into the learned linear causal models using statistical tests.
 
 \cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
 
@@ -1144,11 +1144,11 @@ Libraries: pytorch-geometric, graph-nets from DeepMind
 
 When using probabilistic inference with gradient descent-like algorithms, we need to differentiate through a sampled value $X$ with respect to the sampled parameters $X\sim X(\theta)$. For discrete distributions, reparametrization trick would not work directly, as the gradient of argmax is zero a.s. One version is the log-likelihood trick, but it results in high variance. Another approach is to replace the hard discrete distribution with a soft one, one version of which is the Concrete distribution \cite{Maddison2017}.
 
-\cite{kalainathan2018structural, ng2019masked} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). \cite{Brouillard2020} extend this approach to modelling interventions.
+\cite{Kalainathan2018, Ng2019} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). \cite{brouillard2020differentiable} extend this approach to modelling interventions.
 
 \cite{Fallah2020} use dictionary learning with an autoencoder.
 
-\cite{kipf2019contrastive} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models.
+\cite{Kipf2020} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models.
 
 
 %%%%%%%%%%%%%%%%%%%%
