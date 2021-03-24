@@ -262,10 +262,6 @@ This way, the computationally expensive reconstructor can be fit on two kinds of
 Another technique prevents predicting high-dimensional observations altogether by replacing $R$ with a value function predictor\cite{Schrittwieser2019,Ayoub2020}, which is fit to predict the reward-to-go $R_t(h_T)=\sum\limits_{\tau=t}^{T}\gamma^{\tau-t+1}r_{\tau}$:
 $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
-Contrastive \cite{VanDenOord2018,Kipf2020,Mohammadi2020}
-
-\todo{Describe unsupervised ways (siamese, margin , ...)}
-
 \section{Causal modeling and deep causal modeling}
 \label{sec:causal}
 In a nutshell, {\em Structural Causal Models}\cite{Runge2019,Wong2020,Guo2020} are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
@@ -559,9 +555,7 @@ While in practice, it would be hard to find such a function with gradient descen
 
     Luckily, this pathological behavior disappears as $H, W\to\infty$. While the complexity of the coordinate-wise approach does {\em not} become more complex, and is always described as $f_1^{t+1}=\max(1, \min(H, f_1^t+\mathds 1_{a=+x}-\mathds 1_{a=-x}))$, the single-feature approach's complexity increases. First, we show it for the case of "left-to-right" numbering.
     For the single-feature model, we set $f=W\cdot (x - 1)+y$, and we can reconstruct $y=f\mod W$ and $x=(f-y)/W+1$.
-    Now, implementing the $z\mod n$ function for $z\in [kn]$ with a neural network of constant complexity is impossible [?????] (unless using a periodic activation functions \cite{Sitzmann2020}).
-
-    \todo{Seems obvious but very unclear how to prove}
+    Now, implementing the $z\mod n$ function for $z\in [kn]$ with a neural network of constant complexity and varying $n$ and $z$ does not seem to be possible (unless using a periodic activation functions \cite{Sitzmann2020})\footnote{For example, a ReLU network is (together) a piecewise-linear function, and the number of "switches" is determined by the number of neurons. Note that the $\mod$ function requires at least as many switches as the number of "wraps" of the argument $z$ w.r.t. the $n$}.
 
     Therefore, for more states in a dimension ($x$ or $y$), the model would prefer using two features instead of $1$.
 
@@ -607,8 +601,7 @@ A practical way to choose the measure of complexity is to first fit a model with
 
 The single-feature action influence framework fails in case if an action influences two features, and it does not put constraints on features that are not directly affected by agent's actions (such as movements of objects in the environment). Our approach can be seen as an extension of the single-feature action influence framework in a sense that in case if an environment allows for such a parameterization, our approach would find it as well. Indeed, a single action influencing a single feature exactly corresponds to a minimal number of edges from actions to features.
 
-We also note that the Non-Linear Independent Component Analysis\cite{Dinh2015,Hyvarinen2019} would not yield the desired representations in cases where there is significant dependence between features.
-\todo{Add on why ICA fails}
+We also note that the Non-Linear Independent Component Analysis\cite{Dinh2015,Hyvarinen2019} would not yield the desired representations in cases where there is significant dependence between features. Indeed, it ignores the influence of actions on the time series, and, therefore, it would not account for the number of edges between action-nodes and feature-nodes.
 
 \todo{Add images of graphs and environments}
 
@@ -852,7 +845,17 @@ $$
 \subsection{NP-hardness in the general case}
 As in the linear case of the semester project, we prove the NP-hardness of finding the most sparse causal graph that fits the data. While it was shown \cite{Claassen2013} that finding the causal graph without a decoder is not NP-hard, it is if we consider a learned representation as well.
 
-\todo{reduction to sparse dictionary learning}
+However, even in the case of a linear model, linear decoder and a linear reconstructor, the problem becomes NP-hard. Indeed, consider the linear dynamics $f_{t+1}=M_ff_t+M_aa_t$, where $M_f$ and $M_a$ are matrices of sizes $f\times f$ and $f\times a$. The decoder is also linear: $f_t=Do_t$ where $D$ is a matrix of size $f\times o$. The reconstructor $R$ s.t. $o_t=Rf_t$ is linear as well and has size $o\times f$. In the case where $f=o$ and $D$ is invertible, we can set $R=D^{-1}$. Now, the model for observations is linear as well: $o_{t+1}=D^{-1}\left(M_fDo_t+M_aa_t\right)$. Since the dynamics of the environment is fixed, the matrices $M_o=D^{-1}M_fD$ and $M_a^{o}=D^{-1}M_a$ are determined by the environment. Therefore, our task of finding a sparse model in this case boils down to finding a decoder matrix $D$ giving the most sparse feature transition matrix $DM_oD^{-1}$ and the action transition matrix $DM_a^{o}$:
+$$
+\|DM_oD^{-1}\|_0+\|DM_a^{o}\|_0\to\min\limits_{\exists D^{-1}}
+$$
+
+Now, if $M_o=0$ (the environment does not have a state), the problem becomes Sparse Dictionary Learning\cite{Vincent2002}, a known NP-hard problem.
+
+Another extreme $M_a^o=0$ requires to find a basis given by $D$ in which a matrix $DM_oD^{-1}$ is most sparse. If we allow for complex variables, this problem is polynomial-time computable, as we only need to diagonalize the matrix $M_o$.
+
+Note that the case of one action corresponding exactly to one feature\cite{Thomas2018,Corneil2018} means that $DM_a^o$ has only a single element in each column. Since $D$ transforms the columns of $M_a^o$, in this linear example, it would mean that the columns of $M_a^o$ are collinear, and we can find actions mapping to the same feature by finding sets of collinear vectors in polynomial time.
+%If we know the target matrix $M_a$ (for example, in a grid-world with actions (left, right, up, down) and two state components, it would be $\left(\begin{array}{cccc}1&-1&0&0\\0&0&1&-1\end{array}\right)$). Then, $D$ can be found via the pseudo-inverse.
 
 \subsection{Optimization schemes}
 Now, we have a number of losses (see Figure \ref{fig:architecture_losses} for a diagram of all components) that we would like to minimize together
@@ -914,7 +917,7 @@ We present the approaches below:
 
     \item If the target sparsity is known, a projection\cite{DasGupta} to the $l_1$ simplex can be applied, possibly via the proximal gradient descent method\cite{Deleu2015}.
 
-    \item Adaptive sparsity\cite{Dieleman2021} with a multiplicative update for the $\lambda$ parameter given the reconstruction losses. \todo{Describe adaptive multiplicative sparsity}. We note that this approach is ideologically similar to the Lagrangian update, but does not consider the magnitude of the reconstruction loss compared to the threshold.
+    \item Adaptive sparsity\cite{Dieleman2021} with a multiplicative update for the $\lambda$ parameter given the reconstruction losses. Given a target constraint for the linear combination of all losses but the sparsity loss $L_{\setminus sparse}\leq\varepsilon$, we update the parameter $\lambda_{sparse}$ in \autoref{eq:opt_scheme_linear_comb}. If $L_{\setminus sparse}\leq\varepsilon$, we increase $\lambda_{sparse}:=\lambda_{sparse}\cdot (1+\delta)$, and otherwise decrease it $\lambda_{sparse}:=\lambda_{sparse}\cdot (1-\delta)$. We note that this approach is ideologically similar to the Lagrangian update, but does not consider the magnitude of the reconstruction loss compared to the threshold.
 \end{itemize}
 
 We compare the versions \ref{eq:opt_scheme_linear_comb}, \ref{eq:opt_scheme_sparsity_guess}, \ref{eq:opt_scheme_fit_guess_lin_comb}, \ref{eq:opt_scheme_fit_guess_granular} in \autoref{ch:evaluation}.
@@ -1003,12 +1006,14 @@ If we reparameterize $\lambda_i=\sqrt{\mu_i}$, or $\lambda_i=\mu_i^2$ or $\lambd
 
 A result shows that a sufficient time-scale separation is crucial\cite{Fiez2020}.
 \cite{Rajeswaran2020} considers a similar bi-level problems as a Stackelberg game (where the follower adapts to the leader). The takeaway is to update the follower faster. We achieve this by doing more optimization steps for the decoder and the reconstructor, and less for the model.
-\todo{Describe optimization scheme details.}
 
-custom gradient for gumbel, custom exponential "annealing"
+Given a single batch of data at epoch $i$, we try the following optimization schemes:
+\begin{enumerate}
+    \item Updating all parameters at every epoch $i$
+    \item Updating the model for $\tau_m$ epochs, then the decoder for $\tau_d$ epochs, then the reconstructor for $\tau_r$ epochs.
+\end{enumerate}
 
-selecting coefficients
-
+Empirically, the last approach works better.
 
 
 %%%%%%%%%%%%%%%%%%%%
@@ -1090,7 +1095,7 @@ failure modes
 
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
-\todo{Update from Mendeley}
+\todo{Rewrite}
 \label{ch:related_work}
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -1165,6 +1170,7 @@ A natural extension is to consider multiple time-step dependencies, either by st
 
 Combining the abstract causal concept discovery with doing interventions using policies\cite{Volodin2020} using an RL agent could yield more structured exploration via {\em interventions} on the causal graph\cite{He2008,Frisch2014,Pathak2017,Dasgupta2019}, and, thus, faster convergence time.
 
+An even better approach would use contrastive losses \cite{VanDenOord2018,Kipf2020,Mohammadi2020} instead of the reconstructor. However, this did not work as well as the reconstruction loss in the observation space in this project.
 
 \section{Sparse causal models and the problem of consciousness}
 The connection to the problem of consciousness stems comes from two directions. First, this work can be seen as an implementation of the \cite{Bengio2017} hypothesis. Indeed, we are learning the most sparse model in the latent space, along with learning the representations. The paper explicitly defines this as one of the components of the consciousness prior \cite{Bengio2017}.
