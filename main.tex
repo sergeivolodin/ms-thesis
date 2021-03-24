@@ -124,7 +124,7 @@ One way to define simplicity of causal explanations via the sparsity of the Caus
 %In addition, sparse causal models describing the latent dynamics are hypothesized by Yoshua Bengio to be crucial in the functioning of human consciousness, since human explanations have only few important causes.
 
 In this thesis, we propose a framework \sysname for model-based Reinforcement Learning where the model is regularized for simplicity in terms of sparsity of the causal graph it corresponds to.
-The framework contains a learned mapping from observations to latent features, and a model predicting latent features at the next time-steps given ones from the current time-step. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves, or via a hand-crafted interpretability loss.
+The framework contains a learned mapping from observations to latent features, and a model predicting latent features at the next time-steps given ones from the current time-step. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves, or via a hand-crafted interpretability loss\cite{Francois-Lavet2018}.
 To achieve sparsity, we use discrete Bernoulli variables with gradient estimation, and to find the best parameters, we use the primal-dual constrained formulation to achieve a target model quality.
 The novelty of this work is in learning jointly a sparse causal graph and the representation taking pixels as the input on RL environments.
 We test this framework on benchmark environments with non-trivial high-dimensional dynamics and show that it can uncover the causal graph with the fewest edges in the latent space.
@@ -149,7 +149,7 @@ RL agents could (and sometimes already do) solve real-world problems, such as st
 
 Even the state-of-the-art approaches that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
 
-In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning task \cite{Bengio2007,Learning2014,Deng}, with an objective of obtaining representations allowing for good explanations. In addition, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
+In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning (or Abstraction Learning) task \cite{Bengio2007,Learning2014,Deng,Mitchell2020}, with an objective of obtaining representations allowing for good explanations. In addition, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
 
 While deep neural networks allow to fit various kinds of data, but lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artificial Intelligence (AI) approaches are interpretable (explainable) but lack the versatility of neural networks: they are not applicable to all the tasks.
 Such GOFA approaches are characterized by discrete symbols that are the basis of a reasoning system, i.e. first-order logic.
@@ -158,7 +158,7 @@ The drawback of such systems is that the mapping from real-world "messy" data (e
 Unifying these two approaches yields the best of both worlds, with the versatility of deep AI in being able to fit almost any dataset and the explainability of traditional AI.
 To do so, we learn the representation of observations using a deep network. These representations are used by a system involving discrete components to make explainable predictions about the environment.
 
-The quality of explanations given by such an agent would depend on the learned representation. Specifically, a representation of the observation in which every variable depends on every variable would be practically useless: an action potentially changes all of the variables, and, therefore, an explanation of action's effect would require to list all of them. Since the length of an explanation is crucial, the effect of an action should be describable by a change in only a few variables \cite{Schmidhuber2009}.
+The quality of explanations given by such an agent would depend on the learned representation. Specifically, a representation of the observation in which every variable depends on every variable would be practically useless: an action potentially changes all of the variables, and, therefore, an explanation of action's effect would require to list all of them. Since the length of an explanation is crucial, the effect of an action should be describable by a change in only a few variables \cite{Schmidhuber2009,Chari2020}.
 
 The current explainable RL agents can be classified into three following categories. First, many projects learn sparse representations in terms of the feature vector sparsity: the predicted learned features associated with an observation are sparse at each time-step as a vector. Such a condition, however, is neither necessary nor sufficient for the {\em explanations} of the dynamics to be simple. Indeed, any sparse coding technique will yield sparse feature vectors (for example, by assigning the first $k$ most sparse vectors to all the $k$ states of the MDP in case of a finite MDP), but a feature at the next time-step would depend on many features at the previous time-step. Indeed, without any assumption on the way the sparse features are obtained, two neighboring states can have drastically different representations. Thus, an action potentially changes all of the variables. This demonstrates that sparse feature vectors are not sufficient to have simple explanations. On the other hand, it is possible to have simple explanations without sparse feature vectors. Indeed, the state of a CartPole environment has all of the components being non-0 most of the time, and, yet, these components comply with a simple explainable kinematics equation. Thus, sparse feature vectors are not necessary for simple explanations.
 
@@ -166,9 +166,9 @@ The second approach is to apply feature attribution to the convolutional network
 
 Finally, a line of work is investigating {\em causal} explanations of the agents' actions. This means that a causal graph corresponding to the environment is obtained, and an explanation for an action is then a simple path-finding from the action node to the reward node in this graph. The drawback of the current projects is that the graph is either given manually (by hand), or learned with significant manual work, such as designing the feature space. In this project, we extend this line of work by making the graph learnable end-to-end from the raw observations.
 
-We would like to automatically uncover the simple structure in the underlying complex high-dimensional observations that the environment dynamics generates -- uncover the succinct "laws of physics" that the environment operates with.
+We would like to automatically uncover the simple structure in the underlying complex high-dimensional observations that the environment dynamics generates -- uncover the succinct "laws of physics"\cite{Bakhtin2019} that the environment operates with.
 This would make the actions of an agent explainable.
-It makes the actions of the agent explainable in terms of the "laws of physics" that we learn. In terms of Model-Based RL\cite{DeBruin2018,Corneil2018} (an RL agent equipped with a model of the environment), we would like to learn a simple model of the environment.
+It makes the actions of the agent explainable in terms of the "laws of physics" that we learn. In terms of Model-Based RL\cite{DeBruin2018,Corneil2018,Kaiser2019} (an RL agent equipped with a model of the environment), we would like to learn a simple model of the environment.
 Specifically, we would like each variable in the model to depend on the fewest possible variables at the previous time-steps. This would make actions explainable in terms of the variables an action changes, and the explanation would be short. The model is the "good-old-fashioned" component, since it includes discrete elements: the variable's causes consist of a set of elements, rather than an array of numbers of weights for all possible causes.
 Mathematically, we require sparsity of the model's graph of dependencies -- the predicted output for a variable depends only on a few variables at the previous time-step. If represented as a graph (with cause-variables at the current time-step as parents and effect-variables at the next time-step as children), this graph needs to have fewest possible edges.
 
@@ -177,11 +177,11 @@ To allow for such a simple {\em model}, we need to change the representation, fr
 Thus, the decoder needs to be trained jointly with the model, and it is indirectly regularized by the model: the model is directly regularized for sparsity (in terms of the number of edges), and the decoder needs to output data that such model can predict.
 In our approach, the decoder is a neural network, and a model is also a neural network with a special mechanism to enforce the sparsity of the architecture.
 
-If the the decoder is not additionally regularized for non-degeneracy, it is possible for the system to always predict constant features. This correspond to closing eyes and "predicting" successfully that everything that follows will be dark. The decoder needs to preserve the information that is relevant to the task the system is required to solve. Both in the real world, and in games, not all parts of the observations need to be predicted to achieve goals. For example, the color of an obstacle that a robot encounters is likely not important when it comes to avoiding it. However, this is task-specific, because, for example, a table is much less dangerous as an obstacle compared to water (a robot will be damaged if put into water, while an encounter with a table will likely only result in a loss of time when accomplishing a goal). Therefore, the model needs to predict task-specific features.
+If the the decoder is not additionally regularized for non-degeneracy, it is possible for the system to always predict constant features. This correspond to closing eyes and "predicting" successfully that everything that follows will be dark. The decoder needs to preserve the information that is relevant to the task the system is required to solve. Both in the real world, and in games, not all parts of the observations need to be predicted to achieve goals. For example, the color of an obstacle that a robot encounters is likely not important when it comes to avoiding it. However, this is task-specific, because, for example, a table is much less dangerous as an obstacle compared to water (a robot will be damaged if put into water, while an encounter with a table will likely only result in a loss of time when accomplishing a goal). Therefore, the model needs to predict task-specific features\cite{Cortese2020}.
 
 In this project, we use the two popular types of regularization: we either predict the reward (thus, only the aspects of observations relevant for predicting the reward are kept), or the whole observation (all the aspects of the observation are represented in the latent features). This is achieved by introducing a {\em reconstructor} -- a network that predicts either the reward or the full observation given the latent features.
 
-Our approach allows to obtain "laws of physics" of an environment, or, more specifically, a sparse causal model representing the environment's dynamics.
+Our approach allows to obtain "laws of physics" of an environment, or, more specifically, a sparse {\em Causal Model}\cite{Wong2020} representing the environment's dynamics.
 Our work can be seen as an experimental confirmation of the Consciousness Prior proposal\cite{Bengio2017}, specifically, the part that simple dynamics models learn to interpretable representations.
 If an environment allows for a complete separation of some parts of its dynamics (for example, termination of the episode only depends on the health of the player, and another variable, such as the number of ammunition does not affect the health), out approach would capture it, because a graph with two components has less edges than a connected graph. This way, we {\em disentangle} the representation, as it consists of (recurrent) {\em independent} mechanisms.
 Such a model is very useful for explanations, because an effect of each action can be described in terms of changes in only a few variables (out of many). For example, for Cartpole with images as observations, our approach is expected to output the 4 features representing cart's and pole's position and velocity.
@@ -192,12 +192,12 @@ We design a simple toy environment to illustrate learning of sparse causal model
 
 {\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem with our approach \sysname. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. The main difference with respect to existing methods of learning abstractions in RL is that our only prior is the sparsity (simplicity) of the learned model in the latent space. We do not add any additional priors or assumptions on the feature space, on the environment, or on the agent. We briefly mention the implications of our work on the Integrated Information Theory\cite{Tononi2016} of consciousness.
 
-The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} the various aspects of the observations with natural-language sentences.
+The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground}\cite{Lahlou2019,Hui2020} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
-Sparse causal graph-based or natural language-based explanations\cite{Ehsan2018} of agent's actions would allow for faster certification of agents for mission-critical applications.
-Secondly, since the learned model is the simplest one, it is likely to be less prone to overfitting. In this way, it would be easier to adjust the agent to a novel environment either without modifications (because the model relies more on a discrete set of concepts, than on the whole vector of features), or with re-training the decoder only (for example, if the shape of an obstacle has changed, only the decoder needs to be updated). For the latter part, the training should take less time, because the bulk of the problem is already solved -- the model knows how to avoid obstacles.
+Sparse causal graph-based or natural language-based explanations\cite{Madumal2019,Ehsan2018} of agent's actions would allow for faster certification of agents for mission-critical applications.
+Secondly, since the learned model is the simplest one, it is likely to be less prone to overfitting, and, therefore, more robust to distributional shift\cite{VanSteenkiste2020}. In this way, it would be easier to adjust the agent to a novel environment either without modifications (because the model relies more on a discrete set of concepts, than on the whole vector of features), or with re-training the decoder only (for example, if the shape of an obstacle has changed, only the decoder needs to be updated). For the latter part, the training should take less time, because the bulk of the problem is already solved -- the model knows how to avoid obstacles.
 Third, out prior to have the simplest model could make the agent require less data to train: since it expects the underlying dynamics to be simple, it will converge to the true model faster, because a more complex model (that a regular agent is likely to take as a first guess) will be discarded.
-Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
+Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012,Veerapaneni2019}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
 Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (aprori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
 
 {\bf Source code.} The source code for the project is available at
@@ -243,7 +243,7 @@ In what follows, we consider Markov deterministic environments with deterministi
 
 \section{Model-based reinforcement learning}
 \label{sec:mbrl}
-Model-based reinforcement learning\cite{DeBruin2018,Corneil2018} agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$:
+Model-based reinforcement learning\cite{DeBruin2018,Corneil2018,Kaiser2019} agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$:
 $$
 \hat{o}_{t+1}=M_o(o_t, a_t)
 $$
@@ -259,16 +259,16 @@ Here, the decoder $D$ maps an observation into a low-dimensional latent {\em fea
 
 This way, the computationally expensive reconstructor can be fit on two kinds of data: end-to-end to predict the next features $\|\hat{o}_{t+1}-o_{t+1}\|\to\min$ where $\hat{o}_{t+1}=M_o(o_t, a_t)$, and to predict the current ones $\|\hat{o}_t-o_t\|\to\min$, where $\hat{o}_t=R(D(o_t))\equiv R(f_t)$. This way, the convergence is sped up.
 
-Another technique prevents predicting high-dimensional observations altogether by replacing $R$ with a value function predictor, which is fit to predict the reward-to-go $R_t(h_T)=\sum\limits_{\tau=t}^{T}\gamma^{\tau-t+1}r_{\tau}$:
+Another technique prevents predicting high-dimensional observations altogether by replacing $R$ with a value function predictor\cite{Schrittwieser2019}, which is fit to predict the reward-to-go $R_t(h_T)=\sum\limits_{\tau=t}^{T}\gamma^{\tau-t+1}r_{\tau}$:
 $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
-Contrastive \cite{VanDenOord2018}
+Contrastive \cite{VanDenOord2018,Kipf2020}
 
 \todo{Describe unsupervised ways (siamese, margin , ...)}
 
 \section{Causal modeling and deep causal modeling}
 \label{sec:causal}
-In a nutshell, causal models are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
+In a nutshell, {\em Structural Causal Models}\cite{Runge2019,Wong2020} are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
 
 More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$\footnote{We write time indices below for the whole vector $f_{\tau}=(f_1^{t=\tau},...,f_t^{t=\tau})$, and we write them above, if we additionally specify the index of the feature $f_i^{t=\tau}$}.
 
@@ -308,7 +308,7 @@ One (very inefficient) method to solve this problem is to a) go over all possibl
 We can use gradient descent on $B$ if we relax the problem. There are several methods for it.
 \begin{enumerate}
     \item The obvious solution is to allow $B_i\in[0,1]$ instead of $B_i\in\{0,1\}$ and regularize the model with $\|B\|_1$\cite{Tank2017}. This would enforce sparsity on $B$. However, since we are using a multi-layer network, this solution would not work: in practice, the coefficients in $B$ are never exactly $0$, and the subsequent layers can simply multiply the incoming value by a large constant. Therefore, while $B$ is sparse, the network could actually still be using all the features.
-    \item In the rest of the methods, we sample (element-wise) $B\sim Be(P)$ from the Bernoulli distribution, where $P\in[0,1]^x$ is a matrix of probabilities. The computation of the gradient of the loss with respect to the parameters of the distribution is described in the next section
+    \item In the rest of the methods\cite{Ng2019,Abid2019,Lamb2020,Kalainathan}, we sample (element-wise) $B\sim Be(P)$ from the Bernoulli distribution, where $P\in[0,1]^x$ is a matrix of probabilities. The computation of the gradient of the loss with respect to the parameters of the distribution is described in the next section
 \end{enumerate}
 
 \section{Methods to compute gradients of discrete variables}
@@ -494,7 +494,7 @@ We set the proxy for the Kolmogorov complexity for our class of models as the to
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
 $$
-Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower. Another option is to use the same technique with disabling features to limit the fan-in of the neurons in the network to induce structural sparsity. However, this would result in an even more non-convex and hard-to-optimize problem than this thesis presents. This approach is out of the scope of this thesis.}. The second reason is there by design. Namely,
+Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower. Another option is to use the same technique with disabling features\cite{Oisy2019} to limit the fan-in of the neurons in the network to induce structural sparsity. However, this would result in an even more non-convex and hard-to-optimize problem than this thesis presents. This approach is out of the scope of this thesis.}. The second reason is there by design. Namely,
 This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. This means that it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
 
 \begin{proposition}{(Too complex decoder)}
@@ -568,7 +568,7 @@ While in practice, it would be hard to find such a function with gradient descen
     However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple.
 \end{example}
 
-{\bf "Reusable" decoders and models.} This argument shows a natural setting in which it is not required to count the complexity of the decoder $D$, and of the SCM functions $F_x$. Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused \cite{Bengio2012}, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
+{\bf "Reusable" decoders and models.} This argument shows a natural setting in which it is not required to count the complexity of the decoder $D$, and of the SCM functions $F_x$. Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused \cite{Bengio2012,Veerapaneni2019,Ibrahim2020}, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
 
 
 {\bf Linear models.} A reasonable questions might occur: would it be possible to use the simplest possible class of models to define functions $F$ -- linear models, and "transfer" all of the non-linear complexity into the decoder? This would be extremely beneficial, as environments would be extremely interpretable in this space. The following example shows that even for one of the simplest RL environments, there is no linear feature space that preserves the dynamics and maps bijectively into observations.
@@ -603,11 +603,11 @@ These examples show that it is important to set the complexity of the model's ne
 
 A practical way to choose the measure of complexity is to first fit a model without sparsity constraints, select one with minimal complexity still fitting the data, and then run \sysname.
 
-{\bf Examples.} We discuss how we expect this approach to work in a wide range of environments, and compare it to another interpretability technique where each action is associated in a change in a single feature. We call the latter the "single-feature action influence framework".
+{\bf Examples.} We discuss how we expect this approach to work in a wide range of environments, and compare it to another interpretability technique where each action is associated\cite{Thomas2018} in a change in a single feature. We call the latter the "single-feature action influence framework".
 
 The single-feature action influence framework fails in case if an action influences two features, and it does not put constraints on features that are not directly affected by agent's actions (such as movements of objects in the environment). Our approach can be seen as an extension of the single-feature action influence framework in a sense that in case if an environment allows for such a parameterization, our approach would find it as well. Indeed, a single action influencing a single feature exactly corresponds to a minimal number of edges from actions to features.
 
-We also note that the Non-Linear Independent Component Analysis\cite{Dinh2015} would not yield the desired representations in cases where there is significant dependence between features.
+We also note that the Non-Linear Independent Component Analysis\cite{Dinh2015,Hyvarinen2019} would not yield the desired representations in cases where there is significant dependence between features.
 \todo{Add on why ICA fails}
 
 \todo{Add images of graphs and environments}
@@ -820,7 +820,7 @@ $$
 Since $B_x$ depends on $P_x$, the dataset clearly depends on $P$. Since the probabilities change during the training (a feature could be turned on and off repeatedly in search of the best graph), the problem becomes highly non-stationary -- effectively, the model has to re-relearn to rely on the new set of features that it did not see before. In addition, in case of discrete features, the model might not be able to distinguish between the case where $fa_t=0$ or $B_x=0$.
 It may happen that in case if $f_1=0$ is given, the model should rely on $f_1=0$. However, if a feature is not given, the model should rely on another, more noisy feature.
 However, an input of $0$ does not allow to distinguish between these cases, and the model would be forced to "guess" (output the expected value between the two datasets).
-A solution for this is to feed the mask to the model as well\footnote{A similar approach can be found in \cite{Mooij2016}, but the ablation study was not done for whether or not it improves the setup}:
+A solution for this is to feed the mask to the model as well\footnote{A similar approach can be found in \cite{Mooij2016,DeHaan2019}, but the ablation study was not done for whether or not it improves the setup}:
 $$
 \hat{x}=F_x(fa_t\odot B_x,B_x)
 $$
@@ -850,7 +850,7 @@ L_{fit, m-feat}&=\rho(M_f(Z_{pre}(D(o_t)),a_t), Z_{pre}(D(o_{t+1})));&M_f\circ Z
 $$
 
 \subsection{NP-hardness in the general case}
-As in the linear case of the semester project, we prove the NP-hardness of finding the most sparse causal graph that fits the data. While it was shown \cite{Claassen2013} that finding the causal graph without a decoder is not NP-hard, it is if we consider a learned representation as well
+As in the linear case of the semester project, we prove the NP-hardness of finding the most sparse causal graph that fits the data. While it was shown \cite{Claassen2013} that finding the causal graph without a decoder is not NP-hard, it is if we consider a learned representation as well.
 
 \todo{reduction to sparse dictionary learning}
 
@@ -870,7 +870,7 @@ L_{fit, obs}&\to\min\limits_{D,M,P,R}
 Ideally, we would like to find a point which jointly minimizes all of these losses. In the case of a deterministic environment, it is possible to achieve all of the losses being $0$, $L_{sparse}$ having the minimal possible discrete value.
 
 The traditional practical reformulation of this problem in terms of a Machine Learning problem would result in a loss consisting of two components: one to fit the parameters of the posterior to the data, and one to regularize the model for sparsity, with a coefficient $\lambda$ controlling how "strong" is the posterior \cite{Seeger2007}.
-Such an approach, however, requires to "guess" the parameter $\lambda$.
+Such an approach, however, requires to "guess" the parameter $\lambda$\cite{Luneau2020}.
 A much more convenient way is to either guess the target number of edges in the graph $K(B)$, or the losses constraint $L_i\leq c_i$ for $i\in\{fitobs, fitfeat, rec\}$.
 We present the approaches below:
 
@@ -932,7 +932,7 @@ We note that solving \autoref{eq:opt_scheme_fit_guess_granular} corresponds to s
 
 Indeed, an an optimal point of \autoref{eq:opt_scheme_fit_guess_granular} is a saddle point of \autoref{eq:opt_lagrange} [known fact]. Roughly speaking, this happens because if a constraint is violated, any $\lambda>0$ results in an infinite value of the loss.
 
-To solve this problem, a primal-dual descent-ascent method can be applied (here $x=(D,M,R,P)$ -- the parameters of all neural networks):
+To solve this problem, a primal-dual descent-ascent method can be applied\cite{Franceschi2019} (here $x=(D,M,R,P)$ -- the parameters of all neural networks):
 
 \begin{equation}
 \label{eq:primaldual}
@@ -975,7 +975,7 @@ In order to assess the quality of the solution, we track the following quantitie
 \end{itemize}
 
 \subsection{Separate networks to predict pixels and models}
-Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}.
+Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}. This approach can be found in\cite{Ke2019}
 
 In order to implement the separate networks we use the {\tt einsum} operator in pytorch to implement "vectorized" fully-connected networks.
 
@@ -1090,7 +1090,9 @@ failure modes
 \label{ch:related_work}
 %%%%%%%%%%%%%%%%%%%%%%
 
-GOFA approaches with model simplicity as a prior. \cite{Ave, DesJardins1993} considers a symbolic reasoning approach. \cite{Jonsson2006} considers grouping states into "meta states". \cite{Corneil2018} defines "prototype" states.
+GOFA approaches with model simplicity as a prior. \cite{Ave, DesJardins1993,Evans2018} considers a symbolic reasoning approach. \cite{Jonsson2006} considers grouping states into "meta states". \cite{Corneil2018} defines "prototype" states.
+
+\cite{Thomas2018} consider a model where one action corresponds to a change in one feature.
 
 \cite{Fortuin2018} clusters time series and fits a Markov model in this space.
 
@@ -1098,17 +1100,25 @@ Sparse Dictionary Learning \cite{Vincent2002, Kreutz-delgado2003, Mairal2009, Ba
 
 A number of approaches learn the sparse graph, but without a learned representation (without a decoder network) \cite{Fu2013,Chalupka2017}
 
-Other approaches involve sparse feature vectors for interpretability \cite{Weinstein,Zhu2017,VandenOord2017,Cha2018,Deng}
+Other approaches involve sparse feature vectors for interpretability \cite{Weinstein,Zhu2017,VandenOord2017,Cha2018,Deng,Liu2018,Javed2019,Rafati2019,Pei2019,Lillicrap2019,Petros2020,Fallah2020}
+
+\cite{Madumal2019} generate natural language explanations given a causal model of the environment. Our work can be seen as complementary: we learn the causal graph that can be used as input for that method.
 
 \cite{Barnett2015} apply a {\em linear} decoder and learn a sparse linear model in the context of Granger causality. \cite{Kalainathan2018} learn a sparse (non-linear) model, but without  decoder.
 
 \cite{Yarats2016} cluster the environment's state space.
 
-\cite{Johnson2016} learn a causal model jointly with a decoder, but do not evaluate the sparsity.
+\cite{Johnson2016,Tang2019} learn a causal model jointly with a decoder, but do not evaluate the sparsity.
+
+\cite{Ke2019} implement learning of causal models in the context of Reinforcement Learning, but without a decoder.
+
+\cite{Ehsan2018} apply natural language explanations to Reinforcement Learning.
 
 Simple mathematical equations can describe our world well \cite{hamming1980unreasonable}. We assume that the environments in RL that we are interested in are also describable by such equations.
 
-\cite{Battaglia2018} introduces Graph Neural Networks (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
+\cite{Everitt2019} use the tools of causal reasoning to interpret agents.
+
+\cite{Battaglia2018} introduces Graph Neural Networks\cite{Zhou2018} (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
 
 \cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
 
@@ -1143,9 +1153,9 @@ We present the first (up to our knowledge) that learns a sparse causal graph of 
 The main complexity right now is the time to fit a model of the environment, and then adjust the decoder to sparsify the model. Better (more adaptive) training procedures could speed up the convergence and increase the range of applicability of our approach.
 
 \section{Future work}
-A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
+A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis\cite{Nauta2019}. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
 
-Combining the abstract causal concept discovery with doing interventions using policies\cite{Volodin2020} using an RL agent could yield more structured exploration via {\em interventions} on the causal graph\cite{He2008,Frisch2014,Pathak2017}, and, thus, faster convergence time.
+Combining the abstract causal concept discovery with doing interventions using policies\cite{Volodin2020} using an RL agent could yield more structured exploration via {\em interventions} on the causal graph\cite{He2008,Frisch2014,Pathak2017,Dasgupta2019}, and, thus, faster convergence time.
 
 
 \section{Sparse causal models and the problem of consciousness}
@@ -1162,7 +1172,7 @@ While the grounding technique is known for a long time \cite{Hofstadter1994}, my
 
 Secondly, I express a hypothesis that a learned representation is crucial when dealing with the Integrated Information Theory\cite{Tononi2016}. Currently, the theory does not seem to specify at which level of abstraction it should be applied -- at the level of atoms, or at the level of molecules? Or, maybe, at the level of individual electrical components of a computer that we examine? Specifically, it is unclear what should be the "nodes", "factors" or "variables" in the model, the dependencies between which we are to examine to compute the $\varphi$. This leads to the value of $\varphi$ potentially being arbitrarily high, if a bijective transformation is applied before the analysis [epfl paper].
 
-If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in [epfl paper], albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
+If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011,Johnson}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in [epfl paper], albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
 
 Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole. However, this claim does not seem to be empirically testable, at least now.
 
