@@ -42,12 +42,14 @@
 % maybe some bug in the coefficients / losses
 % gw(5x5, 2feat) solved!
 % sm5(noact/act) solved!
-% sm5_linear(act)...
+% sm5_linear(act) ...
 % ve5_obs ...
 % 5x5_kc_onlycoord...
 % 5x5_kc_full ...
 
 % lagrange|gap|discrete|sparsity|smooth|constraint
+
+% ReLU is generally pretty bad and noisy
 
 % do nonlinear ICA after handing in the report
 
@@ -76,13 +78,13 @@
 }
 
 \acknowledgments{
-I thank my parents for the support in my studies, Switzerland and EPFL in particular for making it possible.
+I thank my parents and my sister for the support in my studies, and Switzerland and EPFL in particular for making it possible.
 
 I would like to also thank Nevan Wichers, Le Nguen Hoang, El-Mahdi El-Mhamdi, Louis Faucon David Krueger, Ivan Vendrov, and Jeremy Nixon for the productive discussions in 2019-2020 on Causality and Machine Learning in general.
 
 I would like to additionally thank Roman Pogodin for introducing me to EPFL and to computational neuroscience. I would like to thank Konrad Seifert, Mattias Berg, Ailin Parsa, Romain Ensminger, Denis Drescher, Michael Pokorny for supporting me.
 
-Special thank you to my supervisor Johanni Brea for supporting me during the thesis.
+Special thank you to my supervisor Johanni Brea for guiding and supporting me during the thesis.
 
 }
 
@@ -100,23 +102,33 @@ Special thank you to my supervisor Johanni Brea for supporting me during the the
 
 "I choose this restaurant because they have vegan sandwiches" could be a typical explanation we would expect from a human. However, current Reinforcement Learning (RL) techniques are not able to provide such explanations, when trained on raw pixels.
 RL for state-of-the-art benchmark environments are based on neural networks, which lack interpretability, because of the very factor that makes them so versatile -- they have many parameters and intermediate representations.
-The best result that could be obtained are two rollouts from the internal model of the agent, showing that one policy would result in a higher reward than the another policy. These rollouts would be high-dimensional objects that are hard to compare together or reason about.
-Additionally, feature attribution could be applied to these rollouts, which would show that certain parts of the raw image observations influence the outcome more than others. However, this would require a careful manual analysis of the feature attribution maps for every possible input that the agent can encounter.
-In contrast, humans use shorter explanations that capture only the essential parts. This is possible because the world contains hierarchical structures in which only a few factors are important, and the rest can be ignored.
-Interpretability of the resulting agent is crucial if such an agent is deployed in the real world in mission-critical scenarios, because a black-box neural network could give wrong predictions on unexpected inputs, without even giving an ability to know the reason of the failure. Thus, interpreting Reinforcement Learning agents is an important step towards safely deploying them.
-In addition, the quest to mimic human-like reasoning is of general scientific interest, as it sheds light on the easy problem of consciousness.
+Enforcing safety guarantees is important when deploying RL agents in the real world, and guarantees require interpretability of the agent.
+%The best result that could be obtained are two rollouts from the internal model of the agent, showing that one policy would result in a higher reward than the another policy. These rollouts would be high-dimensional objects that are hard to compare together or reason about.
+%Additionally, feature attribution could be applied to these rollouts, which would show that certain parts of the raw image observations influence the outcome more than others. However, this would require a careful manual analysis of the feature attribution maps for every possible input that the agent can encounter.
+Humans use short explanations that capture only the essential parts.
+%This is possible because the world contains hierarchical structures in which only a few factors are important, and the rest can be ignored.
+In our thesis, we address the problem of making RL agents understandable by humans.
+%Interpretability of the resulting agent is crucial if such an agent is deployed in the real world in mission-critical scenarios, because a black-box neural network could give wrong predictions on unexpected inputs, without even giving an ability to know the reason of the failure. Thus, interpreting Reinforcement Learning agents is an important step towards safely deploying them.
+In addition to the safety concerns, the quest to mimic human-like reasoning is of general scientific interest, as it sheds light on the easy problem of consciousness.
 
-To make an agent that can reason like a human does, we first need to learn a representation that corresponds to high-level objects contained in the environment, and their properties, like the representation that the natural language uses. If we lack such a representation, any reasoning algorithm's outputs would be useless for interpretability, since even the "referents" of the "thoughts" of such a system would be obscure to us: it would take many words of natural language to explain one concept that the system uses. Thus, a subgoal of making interpretable agents is to create representations that allow for simple explanations of causes and their effects in a given environment.
+%To make an agent that can reason like a human does, we first need to learn a representation that corresponds to high-level objects contained in the environment, and their properties, like the representation that the natural language uses.
+The problem of providing interpretable and simple causal explanations of agent's behavior is connected to the problem of learning good state representations.
+If we lack such a representation, any reasoning algorithm's outputs would be useless for interpretability, since even the "referents" of the "thoughts" of such a system would be obscure to us.
+%: it would take many words of natural language to explain one concept that the system uses.
+% Thus, a subgoal of making interpretable agents is to create representations that allow for simple explanations of causes and their effects in a given environment.
 
-One way to define simplicity of causal explanations is the sparsity of the Causal Model that describes the environment: the causal graph has the fewest edges connecting causes to their effects. For example, a model for choosing the restaurant that only depends on the cause "vegan" is simpler and more interpretable than a model that looks at each pixel of a photo of the menu of a restaurant.
+One way to define simplicity of causal explanations via the sparsity of the Causal Model that describes the environment: the causal graph has the fewest edges connecting causes to their effects. For example, a model for choosing the restaurant that only depends on the cause "vegan" is simpler and more interpretable than a model that looks at each pixel of a photo of the menu of a restaurant, and possibly relies as well on spurious correlations, such the style of the menu.
 
-In addition, sparse causal models describing the latent dynamics are hypothesized by Yoshua Bengio to be crucial in the functioning of human consciousness, since human explanations have only few important causes.
+%In addition, sparse causal models describing the latent dynamics are hypothesized by Yoshua Bengio to be crucial in the functioning of human consciousness, since human explanations have only few important causes.
 
 In this thesis, we propose a framework \sysname for model-based Reinforcement Learning where the model is regularized for simplicity in terms of sparsity of the causal graph it corresponds to.
-The framework contains a learned mapping from observations to latent features, and a model predicting latent features at the next time-steps given ones from the current time-step. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves.
+The framework contains a learned mapping from observations to latent features, and a model predicting latent features at the next time-steps given ones from the current time-step. The latent features are regularized with the sparsity of the model, compared to a more traditional regularization on the features themselves, or via a hand-crafted interpretability loss.
+To achieve sparsity, we use discrete Bernoulli variables with gradient estimation, and to find the best parameters, we use the primal-dual constrained formulation to achieve a target model quality.
+The novelty of this work is in learning jointly a sparse causal graph and the representation taking pixels as the input on RL environments.
 We test this framework on benchmark environments with non-trivial high-dimensional dynamics and show that it can uncover the causal graph with the fewest edges in the latent space.
+We describe the implications of our work to developing priors enforcing interpretability.
 
-For the future work, the causal graph can be used for easier grounding on a set of natural language explanations, as the agent now "knows" about the high-level concepts that the environment contains. In addition, a simple model would likely be less prone to overfitting, which could result in an improved robustness of such agents to distributional shift.
+%For the future work, the causal graph can be used for easier grounding on a set of natural language explanations, as the agent now "knows" about the high-level concepts that the environment contains. In addition, a simple model would likely be less prone to overfitting, which could result in an improved robustness of such agents to distributional shift.
 \end{abstract}
 
 \maketoc
