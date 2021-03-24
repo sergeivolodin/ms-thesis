@@ -16,7 +16,7 @@
 \usepackage{amsmath,amssymb,amsthm} % math typesetting
 \usepackage{dsfont} % for indicator function
 \usepackage[utf8]{inputenc}
-%\usepackage{natbib} % how to make it work???
+\usepackage{natbib} % how to make it work???
 \usepackage{xspace} % possibly add space after something
 \usepackage{hyperref} % autoref and WEB URLs
 \usepackage{graphicx} % figures
@@ -97,6 +97,8 @@ Special thank you to my supervisor Johanni Brea for guiding and supporting me du
     \maketitle
     \makededication
     \makeacks
+
+\listoftodos
 
 \begin{abstract}
 
@@ -404,6 +406,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
 
 \section{The AIXI framework and its connection to our work}
+\todo{Finish description}
 \label{sec:solomonoff_aixi}
 In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework, which gives the same guarantee for RL.
 
@@ -606,6 +609,8 @@ A practical way to choose the measure of complexity is to first fit a model with
 {\bf Examples.} We discuss how we expect this approach to work in a wide range of environments, and compare it to another interpretability technique where each action is associated in a change in a single feature. We call the latter the "single-feature action influence framework".
 
 The single-feature action influence framework fails in case if an action influences two features, and it does not put constraints on features that are not directly affected by agent's actions (such as movements of objects in the environment). Our approach can be seen as an extension of the single-feature action influence framework in a sense that in case if an environment allows for such a parameterization, our approach would find it as well. Indeed, a single action influencing a single feature exactly corresponds to a minimal number of edges from actions to features.
+
+\todo{Add images of graphs and environments}
 
 \begin{example}{(2D grid-world navigation task, Figure \ref{fig:env2d2x2})}
     Consider an environment giving 2D images of size $H\times W$ as an observation, and taking 4 actions (left (decrease horizontal coordinate), right (increase horizontal coordinate), up (increase vertical coordinate), down (decrease vertical coordinate)). While the actions correspond to coordinates, the coordinate variables are latent (hidden) from the agent, as it receives observations instead. In the latent space, the dynamics is very simple: each action only influences one coordinate, and the transition equation is simple as well.
@@ -1067,6 +1072,7 @@ The environment is described fully in my previous publication\cite{Volodin2020} 
 \subsection{NonLinearSparseMatrix$(n,k)$ environment}
 
 \section{True and learned causal graphs}
+\todo{Add graphs}
 \subsection{VectorIncrement$(5)$ environment}
 \subsection{VectorIncrement$(2)$ environment}
 \subsection{KeyChest$(5, 5)$ environment}
@@ -1093,6 +1099,7 @@ This section is usually 5-10 pages.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
+\todo{Update from Mendeley}
 \label{ch:related_work}
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -1180,9 +1187,12 @@ Because of this connection between $\varphi$ and sparsity, our approach can be s
 % \item A self-aware 5-year old
 % \end{itemize}
 
+
 \cleardoublepage
 \phantomsection
 \addcontentsline{toc}{chapter}{Bibliography}
-\printbibliography
+\bibliography{thesis}
+\bibliographystyle{abbrv}
+%\printbibliography
 
 \end{document}
