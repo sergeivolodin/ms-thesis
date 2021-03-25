@@ -315,6 +315,13 @@ We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probab
 
 We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods generally follows \cite{Bengio2013, Weib2011,Maddison2017} unless stated otherwise.
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\linewidth]{plots/plot_gumbel_gradient.pdf}
+    \caption{Gradient for Gumbel-Softmax for different parameters $\tau\in\{1/2,1,2\}$. We obtain it by considering the Gumbel-Softmax estimate $z_p=1/(1+\exp((\log(1-p)-\log p+g_q-g_p)/\tau)$ and noticing that $\delta=g_q-g_p$ has a Logistic distribution. We compute the expected gradient for $\tau=1$ and $\tau=1/2$ via symbolic integration with Wolfram Mathematica, and using numerical sampling for $\tau=2$ (the integral as a function of $p$ does not seem to have a symbolic value for $\tau=2$). Both the expectation and the variance of $\frac{dz_p}{dp}$ have asymptotes at $p=0,1$: the gradient has a high expected value and is also noisy.}
+    \label{fig:gumbel_gradient}
+\end{figure}
+
 \begin{enumerate}
     \item REINFORCE gradient. Consider $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i),\,i\in[x]}\mathcal L(b_1,...,b_x)$. We split the expectation into two: $\mathbb E L'_{\theta_i}=\frac{\partial}{\partial\theta_i}\mathbb E_{B_i\sim Be(p_i)}\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}\mathcal L(b_1,...,b_x)$. Next, we write $\mathbb E_{B_i}$ explicitly with $\mathbb E_{b_{\setminus i}}$ meaning $\mathbb E_{B_i\sim Be(p_j),\,j\in[x],\,j\neq i}$:
     $$
@@ -346,7 +353,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     Here, we simply compute the gradient with respect to the variable $B_i$, as if it were a real-valued one.
     \item Gumbel-Softmax\cite{Jang}. In the forward pass (when computing the value of the loss), we sample from the Bernoulli distribution. In the Backward pass, we compute the gradient as follows. Consider the probabilities $p_i$ and $q_i=1-p_i$ corresponding to sampling either $1$ or $0$ (two categories).
 
-    We define $l_p=\log p_i+g_p)$ and $l_q=\log q_i+g_q$. Here, $g_p$ and $g_q$ are independent samples from the {\em Gumbel} distribution. It has the following property: $\arg\max [l_p, l_q]\overset{d}{=}Be(p)$: the distributions are equal.
+    We define $l_p=\log p_i+g_p)$ and $l_q=\log q_i+g_q$. Here, $g_p$ and $g_q$ are independent samples from the {\em Gumbel} distribution: a continuous distribution with a density function $f_{g_p}(x)=\exp(-(x+\exp(-x)))$. It has the following property: $\arg\max [l_p, l_q]\overset{d}{=}Be(p)$: the distributions are equal.
 
     Now, we replace the $\arg\max$ with $\mbox{soft}\arg\max$:
 
@@ -364,23 +371,27 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 
     The advantage is that the gradient is defined even for a single sample. Compared to the previous approach, there is no additional noise due to the fact that a sample estimate is used.
 
+    The Figure \ref{fig:gumbel_gradient} shows the expected gradient of the estimator\cite{andriyash2018improved} with respect to the probability.
+    The asymptotes at $p\to 0$ and $p\to 1$ mean that the gradient becomes bigger and bigger, as the entropy of the distribution decreases. Therefore, the probabilities never reach these terminal values, as the noise "pushes" them away from these values.
 
-    Using the Taylor series, the gradients of Gumbel-Softmax at points $0$ and $1$ are:
-    $$
-    z_p=p\exp(g_{i1}-g_{i2})+o(p),\,
-    z_p=1-(1-p)\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
-    $$
+    In our project, it is important that the sampling probabilities actually approach the value of $p=1$ (see \autoref{subsec:proba_ranges}). Therefore, we would need to modify Gumbel-Softmax with an additional thresholding mechanism to update the model parameters.
 
-    Therefore, the derivatives for this smooth function are:
-    $$
-    z'_{p,p_i}=\exp(g_{i1}-g_{i2})+o(p),\,p\to 0,\,z'_{p,p_i}=\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
-    $$
-
-    For the point $p=0.5$, $z'_{p,p_i}=4e^{g_1+g_2}/(e^{g_1}+e^{g_2})^2$
-
-    The random variable $g_{i1}-g_{i2}$ is distributed logistically with parameters $\mu=0$, $s=1$, and, therefore, the value $\exp(g_{i1}-g_{i2})$ is heavy-tailed: it's mean value and the variance diverge. We expect arbitrary high values for this expectation. This means that as we get closer to the value of $p=0$ or $p=1$, the noise in the gradients increases. Other terms in the series cannot improve the convergence of the integral, as even the first term diverges.
-
-    In practice, it means that Gumbel-Softmax never reaches this value, and rather slows down.
+%    Using the Taylor series, the gradients of Gumbel-Softmax at points $0$ and $1$ are:
+%    $$
+%    z_p=p\exp(g_{i1}-g_{i2})+o(p),\,
+%    z_p=1-(1-p)\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
+%    $$
+%
+%    Therefore, the derivatives for this smooth function are:
+%    $$
+%    z'_{p,p_i}=\exp(g_{i1}-g_{i2})+o(p),\,p\to 0,\,z'_{p,p_i}=\exp(g_{i2}-g_{i1})+o(1-p),\,p\to 1
+%    $$
+%
+%    For the point $p=0.5$, $z'_{p,p_i}=4e^{g_1+g_2}/(e^{g_1}+e^{g_2})^2$
+%
+%    The random variable $g_{i1}-g_{i2}$ is distributed logistically with parameters $\mu=0$, $s=1$, and, therefore, the value $\exp(g_{i1}-g_{i2})$ is heavy-tailed: it's mean value and the variance diverge. We expect arbitrary high values for this expectation. This means that as we get closer to the value of $p=0$ or $p=1$, the noise in the gradients increases. Other terms in the series cannot improve the convergence of the integral, as even the first term diverges.
+%
+%    In practice, it means that Gumbel-Softmax never reaches this value, and rather slows down.
 
 %    In some implementations, the value of $g$ is truncated with the sampling equation $g=-\log(-\log(u+\varepsilon)+\varepsilon)$ with $\varepsilon=10^{-20}$ and $u\sim U[0,1]$ (uniform distribution). Such a variable will result in a converging integral for the mean and variance.
 
@@ -391,18 +402,19 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 %    z'_{p,p_i}=1+o(p),\,p\to 0,\,z'_{p, p_i}=1+o(1-p),\,p\to 1
 %    $$
 
-    \todo{Explain what happens here and plot a chart.}
 
-    The standard implementation takes logits $h=\log p_i$ as input. Since $\partial z/\partial p=\partial z/\partial h\cdot \partial h/\partial p$, and $\partial h/\partial p=1/p$ we compute $\partial z/\partial h=p+o(p^2),p\to 0$. Therefore, the derivative w.r.t. the logits {\em vanishes} as we approach $0$ or $1$ in probability.
 
-    \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
+%    The standard implementation takes logits $h=\log p_i$ as input. Since $\partial z/\partial p=\partial z/\partial h\cdot \partial h/\partial p$, and $\partial h/\partial p=1/p$ we compute $\partial z/\partial h=p+o(p^2),p\to 0$. Therefore, the derivative w.r.t. the logits {\em vanishes} as we approach $0$ or $1$ in probability.
+
+ %   \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
 
 
     \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $B_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
-    \item Custom gradient from LCN\cite{bellec2018long} [compare with no-logits-Gumbel]
+%    \item Custom gradient from LCN\cite{bellec2018long} [compare with no-logits-Gumbel]
 \end{enumerate}
 
-In our setup, we use REINFORCE as the simplest one, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
+In our setup, we use REINFORCE implementation as the simplest one.%, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
+The Gumbel-Softmax trick would result in duplicated variables, as the probabilities never reach $p=1$, see \autoref{subsec:proba_ranges}.
 
 \section{The AIXI framework and its connection to our work}
 \todo{Finish description}
@@ -774,6 +786,7 @@ L_{sparse}=\mathbb E K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$
 
 \subsection{Ranges of probabilities and exploration}
+\label{subsec:proba_ranges}
 In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
 
 However, we would like to have the case $P_{xx'}=1$ possible in our system. Indeed the difference in losses $L_{fit}\big|_{B_{xx'}=0}$ and $L_{fit}\big|_{B_{xx'}=1}$ can be drastic, and in the worst case we have $L_{fit}\big|_{B_{xx'}=0}-L_{fit}\big|_{B_{xx'}=1}=f+2$ (without using the important feature, each output feature can only be predicted as a constant, and the same for reward and done). Therefore, if $p_{\max}<1$, we have $L_{fit}=(f+2)(1-p_{\max})$, and the loss will no go lower than this value.
