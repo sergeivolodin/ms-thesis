@@ -217,7 +217,15 @@ Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x
 
 \section{Reinforcement Learning}
 \label{sec:rl}
-The standard Reinforcement Learning framework consists of an {\em environment} $\mu$ and an {\em agent} $\pi$. The environment and the agent interact during an {\em episode} consisting of $T<\infty$ discrete time-steps. First, the agent receives an {\em observation} $o_1\in O$ from the environment, where $O$ is the {\em observation space}. Next, the agent executes an {\em action} $a_1\in A$ where $A$ is the {\em action space}. Next, the environment gives the agent a) a scalar reward $r_1\in R$ where $R\subseteq \mathbb R$ is the {\em reward space}, and b) the next observation $o_2\in O$. Next, either the environment terminates the interaction, in this case, $T=2$, or the cycle repeats (the agent executes an action, etc). We introduce the termination variable $d_t$ ("done") as $d_t=0$, $t<T$ and $d_T=1$.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/rl}
+    \caption{The reinforcement learning framework. An environment gives an observation $o_t$ and a reward $r_t$ at time-step $t$, and the agent responds with an action $a_t$. Then, the cycle repeats.}
+    \label{fig:rl}
+\end{figure}
+
+
+The standard Reinforcement Learning framework consists of an {\em environment} $\mu$ and an {\em agent} $\pi$ (see \autoref{fig:rl}). The environment and the agent interact during an {\em episode} consisting of $T<\infty$ discrete time-steps. First, the agent receives an {\em observation} $o_1\in O$ from the environment, where $O$ is the {\em observation space}. Next, the agent executes an {\em action} $a_1\in A$ where $A$ is the {\em action space}. Next, the environment gives the agent a) a scalar reward $r_1\in R$ where $R\subseteq \mathbb R$ is the {\em reward space}, and b) the next observation $o_2\in O$. Next, either the environment terminates the interaction, in this case, $T=2$, or the cycle repeats (the agent executes an action, etc). We introduce the termination variable $d_t$ ("done") as $d_t=0$, $t<T$ and $d_T=1$.
 
 A {\em history} (or an {\em episode}, or a {\em rollout}) of the interaction up to time-step $\tau$ consists of all the variables in the interaction in chronological order: $h_{\tau}=(o_1, a_1, r_1, o_2, ..., a_{\tau-1}, r_{\tau}, o_{\tau})$.
 
@@ -243,7 +251,15 @@ In what follows, we consider Markov deterministic environments with deterministi
 
 \section{Model-based reinforcement learning}
 \label{sec:mbrl}
-Model-based reinforcement learning \cite{DeBruin2018,Corneil2018,Kaiser2019} agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$:
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\linewidth]{diagrams/rl_model}
+    \caption{A single time-step model $M_o$ predicts the next observations $\hat{o}_{t+1}\approx o_{t+1}$ given the current observations $o_t$ and the actions $a_t$.}
+    \label{fig:rlmodel}
+\end{figure}
+
+
+Model-based reinforcement learning \cite{DeBruin2018,Corneil2018,Kaiser2019} agent additionally includes a {\em model of the environment} $M_o$\footnote{The index $o$ means that the model works in the observation space} which is a function mapping the current observation $o_t$ and the action taken $a_t$ to the predicted next observation $\hat{o}_{t+1}$ (see \autoref{fig:rlmodel}):
 $$
 \hat{o}_{t+1}=M_o(o_t, a_t)
 $$
@@ -606,9 +622,15 @@ The single-feature action influence framework fails in case if an action influen
 
 We also note that the Non-Linear Independent Component Analysis \cite{Dinh2015,Hyvarinen2019} would not yield the desired representations in cases where there is significant dependence between features. Indeed, it ignores the influence of actions on the time series, and, therefore, it would not account for the number of edges between action-nodes and feature-nodes.
 
-\todo{Add images of graphs and environments}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/env_gw}
+    \caption{The 2D grid-world environment and the SCM that could be extracted from it. The causal model contains $2$ feature components, one for the horizontal coordinate ($x$) and one for the vertical coordinate $y$. The actions left and right affect $x$, and the actions down and up affect $y$.}
+    \label{fig:env_scm_gw}
+\end{figure}
 
-\begin{example}{(2D grid-world navigation task, Figure \ref{fig:env2d2x2})}
+
+\begin{example}{(2D grid-world navigation task, Figure \ref{fig:env2d2x2} and \ref{fig:env_scm_gw})}
     Consider an environment giving 2D images of size $H\times W$ as an observation, and taking 4 actions (left (decrease horizontal coordinate), right (increase horizontal coordinate), up (increase vertical coordinate), down (decrease vertical coordinate)). While the actions correspond to coordinates, the coordinate variables are latent (hidden) from the agent, as it receives observations instead. In the latent space, the dynamics is very simple: each action only influences one coordinate, and the transition equation is simple as well.
 
     If we apply our approach to this environment, it would uncover this latent representation, guided only by the simplicity of the resulting transition model.
@@ -631,7 +653,15 @@ We also note that the Non-Linear Independent Component Analysis \cite{Dinh2015,H
     The model in the latent space has $8$ edges: features depend on themselves (4 edges), velocity influencing the coordinate (2 edges) and action influence (2 edges changing the coordinate slightly).
 \end{example}
 
-\begin{example}{(Atari Breakout)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/env_breakout}
+    \caption{A causal graph for the Atari Breakout environment. The actions left and right move the pallet (red line below on the left image). The ball's (a single red dot at the dark space on the left image) coordinates update via the velocity variables: the horizontal coordinate $x_{t+1}=x_t+v_x \delta t$ and the vertical coordinate $y_{t+1}=y_t+v_y\delta t$. If the pallet hits the ball, the ball is reflected, hence $v_y$ depends on $x$, $y$ and the pallet position: $v_y^{t+1}=-v_y^t$ in case if $x=x_{pallet}$ and $y=0$. The ball can be reflected from the borders of the environment as well, hence $v_x$ depends on $x$ and $y$. If the ball hits one of the $M$ targets (colored items at the top on the left image), the target disappears, and a reward is given: $hit_i=1$ if $x=x_i$ and $y=y_i$. If the ball is below the pallet, the episode terminates, hence $d$ depends on $y$ of the ball.}
+    \label{fig:env_breakout}
+\end{figure}
+
+
+\begin{example}{(Atari Breakout, \autoref{fig:env_breakout}])}
     The objects can be grouped into the pallet that is controllable by the player (1 horizontal coordinate), two coordinates for the ball, and 2 coordinates of each of the individual pieces that need to be destroyed.
 
     Note that while the single-feature influence model disentangles the coordinate of the pallet from the rest of the features, it does not put any constraints on the representation for the ball or for the destroyable pieces: they can be represented in any possible way.
