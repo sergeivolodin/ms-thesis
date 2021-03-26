@@ -1074,7 +1074,7 @@ In this section, we present the results of running \sysname on a number of bench
 We denote the resulting graph given by the algorithm as $\hat{G}_{x'x}$ for whether there is an edge from a cause variable (one at the current time-step) $x\in X_{in}=\{f_1,...,f_f,a_1,...,a_a\}$ to an effect variable (one at the next time-step) $x'\in X_{out}=\{f_1,...,f_f,r,d\}$ (see \autoref{ch:design}). The true causal graph for an environment (if exists) is denoted as $G_{x'x}$. The matrices $G_{x'x}$ and $\hat{G}_{x'x}$ have binary values $G_{x'x}\in\{0,1\}$. $1$ means that the edge is present, and $0$ means that the edge is absent. The total number of edges is $K(G)=\sum\limits_{x\in X_{in}}\sum\limits_{x'\in X_{out}}G_{x'x}$. To obtain $\hat{G}$ from $P$, a thresholding algorithm (K-Means) is applied (see \autoref{ch:implementation} and \autoref{ch:design}).
 
 \section{Environments}
-We describe the environments that we develop for this project, as well as established benchmarks.
+We describe the environments that we develop for this project, as well as established benchmarks. Each environment tests a particular aspect of learning causal graphs. The SparseMatrix environment considers a case of correlated features in which each action can affect multiple features. VectorIncrement has a simple dynamics, but the observations are encoded in pixel space. KeyChest environment is a grid-world with variable complexity with both frequently changing and hard-to-change features.
 
 \subsection{SparseMatrix$(n,k)$ environment}
 The simplest environment we consider is SparseMatrix(n,k). Given the dimensionality of the space, we randomly sample a matrix $A\in \mathbb R^{n\times n}$ at the initialization of the environment (once per training session, i.e. the matrix is the same after a {\tt reset()}).
@@ -1090,6 +1090,60 @@ $$
 The actions are ignored for this environment, and the reward is always $0$. An encoder is not applied, i.e. the environment's observation is the state.
 
 The true causal graph (without a decoder) for this environment always equals to non-zero components of the transition matrix: $G^{true}_{f_if_j}=\mathds 1_{A_{ij}\neq 0}$.
+
+Additionally, we add a sparse random matrix influencing actions. To make the effect of actions non-linear, we only apply actions to positive state components:
+$$
+\tilde{s}_{t+1}=As_t,\, s^i_{t+1}=\mathds 1_{\tilde{s}_{t+1}>0}\cdot \sum\limits_j B_{ij}a_t^j
+$$
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\linewidth]{diagrams/env_true_sm3}
+    \caption{SparseMatrix$(3, 4)$ environment for the given $A$}
+    \label{fig:envtruesm3}
+\end{figure}
+
+\begin{example}
+    If we take $n=3$ and the following matrix:
+
+    $$
+    A=\left(
+    \begin{array}{ccc}
+    0&-1&0\\
+    1&0&-1\\
+    1&0&0
+    \end{array}
+    \right)
+    $$
+
+    we obtain the causal graph shown in \autoref{fig:envtruesm3}.
+\end{example}
+
+\begin{example}
+    We test our approach on the following matrices for $n=5$:
+
+    $$
+    A=\left(
+    \begin{array}{ccccc}
+    0 & 0 & 0 & -1 & 0\\
+    0 & 0 & -1 & 0 & 0\\
+    -1 & 0 & -1 & 0 & 0\\
+    0 &1 & 0 & 1 & 0\\
+    0 & 0 & 0 & 0 & -1
+    \end{array}
+    \right),\,
+    B=\left(
+    \begin{array}{ccccc}
+    0 & 0 & 0 & 0 & -1\\
+    0 & 0 & 0 & 1 & -1\\
+    -1 & -1 & 0 & 0 & 0\\
+    1 & 0 & 0 & 0 & 0\\
+    0 & 0 & 1 & 0 & 0\\
+    \end{array}
+    \right)
+    $$
+
+\end{example}
 
 \subsection{VectorIncrement$(n)$ environment}
 The state has $n$ components, and there are $n$ actions. At the beginning, the state is a zero vector $s_1=0\in\mathbb R^n$. Executing action $i$ results in an increment in the $i$'th component of the state vector:
@@ -1118,9 +1172,14 @@ The environment additionally supports rendering observations as images using a l
 
 
 \subsection{KeyChest$(h,w,f,c,k)$ environment}
-The environment is described fully in my previous publication \cite{Volodin2020} at ICLR CLDM 2020.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{diagrams/env_true_kc}
+    \caption{The causal graph for the KeyChest environment. The actions influence the coordinates. At each time-step, the health variable decreases, and if it is $0$, the episode ends. Collected food (player coordinates equal to the food coordinates) increses health, and food disappears. Keys can be collected as well. A chest can only be collected in case if there are keys already collected, and in that case the number of collected keys decreases. A lamp is toggled in case if the player is at the button position.}
+    \label{fig:envtruekc}
+\end{figure}
 
-\subsection{NonLinearSparseMatrix$(n,k)$ environment}
+The environment is described fully in my previous publication \cite{Volodin2020} at ICLR CLDM 2020. The causal graph is shown in \autoref{fig:envtruekc}
 
 \section{True and learned causal graphs}
 \todo{Add graphs}
