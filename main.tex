@@ -1200,10 +1200,43 @@ The environment is described fully in my previous publication \cite{Volodin2020}
 
 \section{True and learned causal graphs}
 \todo{Add graphs}
-\subsection{VectorIncrement$(5)$ environment}
-\subsection{VectorIncrement$(2)$ environment}
-\subsection{KeyChest$(5, 5)$ environment}
 \subsection{SparseMatrix$(5, 7)$ environment}
+\subsection{VectorIncrement$(5)$ environment}
+Given the permuted pixels, the methods successfully uncovers a correct causal graph, with even fewer edges than anticipated. The results can be reproduced by running
+{\tt python sparse\_causal\_model\_learner\_rl/learner.py --n\_gpus 1 --nofail --config sparse\_causal\_model\_learner\_rl/configs/rl\_const\_sparsity\_obs\_space.gin --config sparse\_causal\_model\_learner\_rl/configs/env\_ve5\_with\_rew\_done.gin --config sparse\_causal\_model\_learner\_rl/configs/with\_lagrange\_dual\_sparsity.gin}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{plots/ve5_feature_corr}
+    \caption{The feature correlation matrix for the learned model for the VectorIncrement$(5)$ environment with pixels as observations. $f_1,...,f_6$ are the learned features ($f_6$ is a constant feature and can be ignored), $d_1,...,d_5$ are the ground truth values of the state components, and {\tt step}is the time-step. The block-diagonal entries show that there is weak correlation between digits, and no strong correlations between features. In contrast, the correlations between features and digits are high: $d_1$ is correlated with $f_1$, $d_4$ with $f_2$, {\tt step} with $f_3$, and $d_5$ with $f_5$.}
+    \label{fig:ve5featurecorr}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\linewidth]{plots/ve5_adaptive_train_losses}
+    \caption{The losses and parameters when running \sysname on VectorIncrement$(5)$. The leftmost chart shows the Lagrange multiplier associated with the fit constraint $L_{fit,feat}\leq c_{fit,feat}$. The second chart shows the number of non-zero components in the node adjacency matrix. The third chart shows the adaptive sparsity gap, and the final chart shows the fit loss $L_{fit,feat}$.}
+    \label{fig:ve5adaptivetrainlosses}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{plots/ve5_adaptive_learned_graph}
+    \includegraphics[width=0.39\linewidth]{plots/ve5_adaptive_resulting_model_edge}
+    \caption{The learned graph for VectorIncrement$(5)$. Left: the resulting causal graph. Right: the causal graph as a node adjacency matrix.}
+    \label{fig:ve5adaptivelearnedgraph}
+\end{figure}
+
+
+
+The correlation matrix between the decoder features and the digits is shown in \autoref{fig:ve5featurecorr}. The step variable can be obtained from one of the features with $R^2=0.989$ and the p-value $p<10^{-4}$.
+
+The \autoref{fig:ve5adaptivelearnedgraph} shows the learned graph for the environment. It can be seen that the graph is simpler than expected (Figure \ref{fig:ve5nodec}). Indeed, while $a_1,a_4,a_0$ are associated with features $f_1,f_3,f_4,f_0$, the action $a_2$ does not correspond to a feature. Instead, a feature $f_2$ determines {\tt done}. This is correct: indeed, {\tt done} can be computed via the current time-step, regardless of the values of the state components. The value of the state component associated with $a_2$ can be computed by subtracting all the other features from the time feature. Additionally, $a_3$ does not affect the reward. This is also correct, because at each time-step at least one action is taken. Therefore, we can determine that $a_3$ is taken by noticing that no other action is taken.
+
+The \autoref{fig:ve5adaptivetrainlosses} shows the training curves during the run of \sysname. First, the Lagrange multiplier increases up to its maximal value of $10^{3}$, which corresponds to the phase where the initial (non-sparse) model is learned. Next, the parameter decreases and oscillates with decreasing magnitude. This corresponds to selecting the right edges in the graph. The oscillation in the Lagrange multiplier cause the values of $P_i$ to oscillate as well, which leads to an oscillation in the fit loss. Note that the sparsity gap is also oscillating, which means that the oscillation is caused solely by the change in the probabilities (and not in the quality of the model given all the features).
+%\subsection{VectorIncrement$(2)$ environment}
+\subsection{KeyChest$(5, 5)$ environment}
 
 \section{Ablation study for VectorIncrement$(5)$}
 
