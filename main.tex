@@ -497,11 +497,13 @@ First, we give a detailed example of why feature sparsity does not imply interpr
 \begin{example}
     Consider the $2D$ grid-world environment from Figure \ref{fig:env2d2x2} with $H,W>2$. It has $HW$ states. Consider binary features $f_i\in\{0,1\}$. Given the feature dimensionality $f$, we select the first $HW$ most sparse vectors in $\{0,1\}^f$ to map to the states (this is possible in case if $2^f\geq HW$).
 
-    In case if $f=HW$, we have maximal feature sparsity: each feature vector has at most $1$ component. Feature vectors become $1-hot$ vectors coding for the state numbers (except for the $0$ vector). However, the model lacks interpretability because it does not capture the structure of the environment -- it has $2$ independent components $x$ and $y$, and actions affect only the corresponding coordinates.
+    In case if $f=HW$, we have maximal feature sparsity: each feature vector has at most $1$ component. Feature vectors become $1$-hot vectors coding for the state numbers. However, the model lacks interpretability because it does not capture the structure of the environment -- in truth, it has only $2$ independent state components $x$ and $y$, and actions affect only the corresponding coordinates.
 
     One might argue that the feature dimensionality is too high in this case, and this is the cause of the lack of interpretability.
 
     In case if $HW\approx f+f(f-1)/2$, we use all vectors with $1$ component and all vectors with $2$ components. However, this model is also not interpretable -- it also does not capture the two-dimensional dynamics.
+
+    If we continue decreasing $f$ further, some features would have many non-zero elements, and sparsity would be lost.
 
     This shows that feature sparsity in a resonable example is not sufficient for interpretability.
 
@@ -509,11 +511,11 @@ First, we give a detailed example of why feature sparsity does not imply interpr
     However, this coding is not sparse -- in fact, the values of the features are never $0$. This shows that feature sparsity is not necessary for interpretability.
 \end{example}
 
-To be fair, sparse features do help interpretability in case if an observation can contain a limited number of objects, one at a time. For example, an observation either contains an enemy, or the health bar. However, these two variables then can be replaced with one and modeled with our framework. We note that our approach also has flaws (see the failure modes below), and the question of defining human "simplicity prior" mathematically in all cases remains open.
+To be fair, sparse features do help interpretability in case if an observation can contain a limited number of objects, one at a time. For example, an observation either contains an enemy, or the health bar. Our approach can be seen as a generalization: these two variables then can be replaced with one and modeled with our framework. We note that our approach also has flaws (see the failure modes below), and the question of defining human "simplicity prior" mathematically in all cases remains open.
 
 In addition, we must clarify the following point. In what follows, we will induce sparsity on the feature vectors, but in a very specific way. First, we consider sparse feature vectors (with some components zeroed out) as an {\em input to the model predicting the same features}, i.e. a dynamics model. The model takes only certain features as the input. Importantly, the sparsity mask is different for predicting different features, and is not reducible to the sparsity of the feature vector as a whole. In fact, for all of the environments that we use, the feature vector is not sparse as a whole.
 
-In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
+Most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbors of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. However, sparsity alone does not necessarily mean interpretability. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
 
 \subsection{Sparse fan-in models sometimes are sufficient for interpretability, and usually are necessary}
 In general, simplicity of a model can be described by Kolmogorov complexity (see \autoref{ch:solomonoff_aixi}). Since this quantity is uncomputable, we set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask, or the number of edges in the Structural Causal Model:
@@ -521,10 +523,12 @@ $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
 $$
 Note that we only count the complexity of the mask, and do {\em not} count the complexity of the functions $F_x$, or of the decoder $D$. This stems from two reasons. The first reason is purely practical -- there does not exist a measure of complexity for neural networks $F_x$ or $D$ that could be easily optimized for\footnote{One candidate is the norm of the Jacobian as a measure of complexity, however, this norm would be lower for a $\sin(x)$ function than for a linear function $x$ for some arguments, because the derivative is lower. Another option is to use the same technique with disabling features \cite{Oisy2019} to limit the fan-in of the neurons in the network to induce structural sparsity. However, this would result in an even more non-convex and hard-to-optimize problem than this thesis presents. This approach is out of the scope of this thesis.}. The second reason is there by design. Namely,
-This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. This means that it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
+This issue is somewhat alleviated by the fact that neural network of fixed architecture can only implement functions of bounded Kolmogorov complexity: it only has a finite number of arithmetic operations. In this way, the total complexity of all learnable parameters can be described as $K(M_o)=K(D)+K(B)+K(M_f)$ where $K(D)$ and $K(M_f)$ are bounded.
+
+However, it is important to set the class of functions that represent the decoder $D$ and the model $F_x$ properly. Otherwise, the following situation can occur.
 
 \begin{proposition}{(Too complex decoder)}
-    Consider an arbitrary deterministic environment $\mu$ and a deterministic policy $\pi$. With a suitable decoder, it is possible to obtain $\tilde{K}(B)=1$ (minimal value) and $L_{rec}=L_{fit}=0$
+    Consider an arbitrary deterministic environment $\mu$ and a deterministic policy $\pi$. With a suitable decoder, it is possible to obtain $\tilde{K}(B)=3$ (minimal value) and $L_{rec}=L_{fit}=0$
 \end{proposition}
 \begin{proof}
     The main idea is to map a multidimensional space into a single-dimensional one. There are several ways to do that
@@ -538,7 +542,7 @@ This issue is somewhat alleviated by the fact that neural network of fixed archi
     \item For discrete state spaces, an even simpler approach is possible: since the number of states is finite, it is possible to represent each state using its number. This trick can also work for continuous states with discretization.
     \end{itemize}
 
-    Now, $f=1$ (only $1$ feature is required). Given features $f_t$, we can compute $f_{t+1}$ by first reconstructing the observation (here the bijectivity matters), and then applying the Game Engine:
+    Now, $f=1$ (only $1$ feature is required). Given features $f_t$, we can compute $f_{t+1}$ by first reconstructing the observation (here the bijectivity matters), and then applying the "Game Engine" (the dynamics of the model in its internal state space):
     $$
     f_{t+1}=D(E(GE(E^{-1}(D^{-1}(f_t))),a_t))
     $$
@@ -550,19 +554,19 @@ This issue is somewhat alleviated by the fact that neural network of fixed archi
     While the complexity of the binary mask $B$ is small, the complete model is extremely complex: the functions $D$ and $D^{-1}$ compute the non-smooth bijection mapping a unit interval to a unit square.
 \end{proof}
 
-While in practice, it would be hard to find such a function with gradient descent, as it is highly non-convex, there is another example which shows that the complexity of $D$ and $M_f$ should not be exceedingly high:
+While in practice, it would be hard to find such a function with gradient descent, as it is highly non-smooth, there is another example which shows that the complexity of $D$ and $M_f$ should not be exceedingly high:
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=0.7\linewidth]{diagrams/env_2d_2x2.pdf}
-    \caption{2D grid-world with 4 cells: 2 rows and 2 columns. Actions $\pm x$ and $\pm y$ change the values of the coordinates. The single feature $f\in\{1,2,3,4\}$ bijectively maps to the state space. This example extends naturally to $H$ rows and $R$ columns with $x\in[H]$ and $y\in [W]$, and the same set of actions $\pm x$, $\pm y$.}
+    \caption{2D grid-world with $H\times W$ cells: $H$ rows and $C$ columns (the image shows $H=W=2$). Actions $\pm x$ and $\pm y$ change the values of the coordinates. The single feature $f\in\{1,2,3,4\}$ bijectively maps to the state space. This example extends naturally to $H$ rows and $R$ columns with $x\in[H]$ and $y\in [W]$, and the same set of actions $\pm x$, $\pm y$.}
     \label{fig:env2d2x2}
 \end{figure}
 
 \begin{example}
-    Consider a grid-world with $2$ components of the player: $x$ (horizontal) and $y$ (vertical) taking discrete values: $x\in [H]$ and $y\in [W]$. The actions $-x$ and $+x$ affect the horizontal coordinate $x$. The actions $-y$ and $+y$ affect the vertical coordinate $y$. We can represent this environment by $2$ features, one for each of the coordinates.
+    Consider a grid-world with $2$ components of the player (see \autoref{fig:env2d2x2}): $x$ (horizontal) and $y$ (vertical) taking discrete values: $x\in [H]$ and $y\in [W]$. The actions $-x$ and $+x$ affect the horizontal coordinate $x$. The actions $-y$ and $+y$ affect the vertical coordinate $y$. We can represent this environment by $2$ features, one for each of the coordinates.
 
-    However, consider the case of $H$ and $W$ being small (for example, $H=W=2$). In this case, we can design a transition model using only a single feature $f_1$ which takes the following values:
+    Consider the case of $H$ and $W$ being small (for example, $H=W=2$). In this case, we can design a transition model using only a single feature $f_1$ which takes the following values:
 
     $
     \begin{array}{ccc}
@@ -583,13 +587,13 @@ While in practice, it would be hard to find such a function with gradient descen
 
     Thus, too high model complexity will result in less features used, but the interpretability will be lost.
 
-    Luckily, this pathological behavior disappears as $H, W\to\infty$. While the complexity of the coordinate-wise approach does {\em not} become more complex, and is always described as $f_1^{t+1}=\max(1, \min(H, f_1^t+\mathds 1_{a=+x}-\mathds 1_{a=-x}))$, the single-feature approach's complexity increases. First, we show it for the case of "left-to-right" numbering.
+    Luckily, this pathological behavior disappears as $H, W\to\infty$. While the complexity of the coordinate-wise approach does {\em not} become more complex, and is always described as $f_1^{t+1}=\max(1, \min(H, f_1^t+\mathds 1_{a=+x}-\mathds 1_{a=-x}))$, the single-feature approach's complexity increases. We show it for the case of "left-to-right" assignment of feature values.
     For the single-feature model, we set $f=W\cdot (x - 1)+y$, and we can reconstruct $y=f\mod W$ and $x=(f-y)/W+1$.
-    Now, implementing the $z\mod n$ function for $z\in [kn]$ with a neural network of constant complexity and varying $n$ and $z$ does not seem to be possible (unless using a periodic activation functions \cite{Sitzmann2020})\footnote{For example, a ReLU network is (together) a piecewise-linear function, and the number of "switches" is determined by the number of neurons. Note that the $\mod$ function requires at least as many switches as the number of "wraps" of the argument $z$ w.r.t. the $n$}.
+    Now, implementing the $z\mod n$ function for $z\in [kn]$ with a neural network of constant complexity and varying $n$ and $z$ is not possible (unless using a periodic activation functions \cite{Sitzmann2020})\footnote{For example, a ReLU network is a piecewise-linear function, and the number of "switches" is determined by the number of neurons. Note that the $\mod$ function requires at least as many switches as the number of "wraps" of the argument $z$ w.r.t. the $n$. Therefore, a ReLU network with a fixed architecture can only implement some but not all functions $z\mod n$.}.
 
-    Therefore, for more states in a dimension ($x$ or $y$), the model would prefer using two features instead of $1$.
+    Therefore, for $H,W\gg 1$, the model would prefer using two features instead of $1$.
 
-    However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple.
+%    However, this does not prevent at all to learn a linear combination of features: $f_1=\alpha x+(1-\alpha)y$ and $f_2=\beta x+(1-\beta)y$. The dynamics still stays simple, but the interpretability is lost.
 \end{example}
 
 {\bf "Reusable" decoders and models.} This argument shows a natural setting in which it is not required to count the complexity of the decoder $D$, and of the SCM functions $F_x$. Humans do not re-learn the visual cortex when a new game is presented. Instead, the same architecture is reused \cite{Bengio2012,Veerapaneni2019,Ibrahim2020,Didolkar2021,Gomez2006,Mao2019}, and only the novel high-level behavior is learned. Additionally, humans do not learn the rules of every game from scratch (for example, learning again that there are $x$ and $y$ coordinates in every shooter game). Instead, the existing abstractions (such as $WASD$ keys used to control the player) are re-used. With this in mind, a natural extension of this work is to re-use the decoder and parts of the model (see section \ref{ch:conclusion} for the concrete future direction proposal). If we reuse some parts of the decoder, or of the model, their complexity (in terms of the shortest program describing them) is greatly reduced, when the "bank" of existing abstractions is given, and only an "index" in this "bank" needs to be specified, instead of learning the complete model from scratch.
@@ -600,7 +604,7 @@ While in practice, it would be hard to find such a function with gradient descen
 \begin{figure}
     \centering
     \includegraphics[width=0.7\linewidth]{diagrams/env_line_3}
-    \caption{Line environment with 3 states. Action $a_1$ corresponds to moving right, and $a_2$ corresponds to moving left. Going left from the left-most state does not change the sate, and same for the right-most state. The variable $x$ increases when going right and takes integer values starting from $1$. Each state with $x=i$ has an associated feature vector $f_i$}
+    \caption{Line environment with 3 states. Action $a_1$ corresponds to moving right, and $a_2$ corresponds to moving left. Going left from the left-most state does not change the state, and same for the right-most state. The variable $x$ increases when going right and takes integer values starting from $1$. Each state with $x=i$ has an associated feature vector $f_i$}
     \label{fig:env_line3}
 \end{figure}
 
@@ -610,12 +614,12 @@ While in practice, it would be hard to find such a function with gradient descen
 
     We show that this class is very small, even with a non-linear decoder. Indeed, consider the Line-3 environment (navigating on a line with 3 states) -- see Figure \ref{fig:env_line3}. It does not fit into our definition.
 
-    Indeed, first, the bias term in the linear model can be shifted into the actions $M_a$. Suppose that the decoder gives some features for the states $f_1, f_2, f_3$ (does not matter how, it's only important that the features are fixed). Multiplying $M_aa_i=A_i$ by definition, this gives two vectors $A_1$ and $A_2$.
+    Indeed, first, the bias term in the linear model can be "shifted" into the actions $M_a$. Suppose that the decoder gives some features for the states $f_1, f_2, f_3$ (does not matter how, it's only important that the features are fixed). Multiplying $M_aa_i=A_i$, we get two vectors $A_1$ and $A_2$.
 
     Then, $f_1=M_ff_1+A_2$ (going left from $f_1$ gives $f_1$), and $f_3=M_ff_3+A_1$ (going right from $f_3$ gives $f_3$). Now consider what happens in $f_2$. If we go left, we get $f_1$: $M_ff_2+A_2=f_1$. If we go right, we get $f_3$: $M_ff_2+A_1=f_3$. Subtracting these two gives $f_3-f_1=A_1-A_2$. On the other hand, the "stuck at the wall" equations give us $f_3-f_1=M_ff_3+A_1-M_ff_1-A_2=M_f(f_3-f_1)+A_1-A_2$. So, equating these two, we get
     $f_3-f_1=M_f(f_3-f_1)+A_1-A_2=A_1-A_2$. This means that $M_ff_3=M_ff_1$.
 
-    Now, consider the "stuck at the right wall" $f_3=M_ff_3+A_1$, and going right from $f_1$: $f_2=M_ff_1+A_1$. But $M_ff_1=M_ff_3$, which means that $f_2=M_ff_3+A_1$. Note the same RHS as for the "stuck at the right wall". Therefore, $f_2=f_3$, {\em we cannot distinguish between $f_2$ and $f_3$, degenerate representation.}
+    Now, consider the "stuck at the right wall" $f_3=M_ff_3+A_1$, and going right from $f_1$: $f_2=M_ff_1+A_1$. But $M_ff_1=M_ff_3$, which means that $f_2=M_ff_3+A_1$. Note the same RHS as for the "stuck at the right wall". Therefore, $f_2=f_3$, {\em we cannot distinguish between $f_2$ and $f_3$, a contradiction with the representation being non-degenerate.}
 
     This contradiction shows that for this environment, features are either {\em degenerate} (a single feature vector corresponds to two different observations), or the model should be non-linear.
 
@@ -647,10 +651,10 @@ We also note that the Non-Linear Independent Component Analysis \cite{Dinh2015,H
     If we apply our approach to this environment, it would uncover this latent representation, guided only by the simplicity of the resulting transition model.
     The model in this space has $6$ edges: each of the two features depends on itself from the previous iteration (2 edges), and each action influencing one feature component (4 edges).
 
-    For this environment, the simpler approach to associate an action with a feature component works as well. However, the loss would not be $0$, as an action does not always influence the state (at the boundaries an action does not do anything). Note that this approach also works for 3D navigation with $3$ latent feature components and $9$ edges in the graph.
+    For this environment, the simpler approach to associate an action with a feature component works as well. However, the loss would not be $0$, as an action does not always influence the state (at the boundaries an action does not do anything). %Note that this approach also works for 3D navigation with $3$ latent feature components and $9$ edges in the graph.
 \end{example}
 
-\begin{example}{(MountainCar)}
+\begin{example}{(MountainCar \cite{brockman2016openai})}
     We consider two possible parameterizations. One uses Cartesian coordinates $x$ and $y$ (and their velocities), and the other uses the linear position of the car on the track (and its velocity).
 
     The Cartesian coordinates result in an interpretable model with physically realistic equations. However, in this parameterization, an action influences both of the coordinates, as the car moves both in $x$ and $y$ directions.
@@ -659,7 +663,7 @@ We also note that the Non-Linear Independent Component Analysis \cite{Dinh2015,H
 \end{example}
 
 
-\begin{example}{(CartPole with images as observations.)}
+\begin{example}{(CartPole \cite{brockman2016openai} with images as observations.)}
     Consider the CartPole environment from OpenAI Gym. The latent state has 4 components (the positions and the velocities of the cart and the pole).
     The model in the latent space has $8$ edges: features depend on themselves (4 edges), velocity influencing the coordinate (2 edges) and action influence (2 edges changing the coordinate slightly).
 \end{example}
@@ -672,24 +676,28 @@ We also note that the Non-Linear Independent Component Analysis \cite{Dinh2015,H
 \end{figure}
 
 
-\begin{example}{(Atari Breakout, \autoref{fig:env_breakout}])}
-    The objects can be grouped into the pallet that is controllable by the player (1 horizontal coordinate), two coordinates for the ball, and 2 coordinates of each of the individual pieces that need to be destroyed.
+\begin{example}{(Atari \cite{brockman2016openai} Breakout, \autoref{fig:env_breakout})}
+    The objects can be grouped into the pallet that is controllable by the player (1 horizontal coordinate), two coordinates for the ball (and its velocity), and one presence feature for each of the individual pieces that need to be destroyed.
 
     Note that while the single-feature influence model disentangles the coordinate of the pallet from the rest of the features, it does not put any constraints on the representation for the ball or for the destroyable pieces: they can be represented in any possible way.
 \end{example}
 
-\begin{example}{(MsPacman)}
+\begin{example}{(MsPacman \cite{brockman2016openai})}
    The number of lives is a separate feature, the positions of the ghost, of food pallets, of the cherry, of the player are features as well.
 
-   Note that the single-feature action influence approach again would obtain a good representation for the Pacman (because its coordinates are affected by the actions directly), but does not enforce any constraints to obtain a good representation for the ghosts, the food, and the cherry.
+   Note that the single-feature action influence approach again would obtain a good representation for the Pacman (because its coordinates are affected by the actions directly). It does not enforce any constraints to obtain a good representation for the ghosts, the food, and the cherry.
 \end{example}
 
-\begin{example}{(Montezuma revenge)}
-    The representation contains the coordinates of the player and other objects, as well as the current room the player is in.
-\end{example}
+%\begin{example}{(Montezuma revenge)}
+%    The representation contains the coordinates of the player and other objects, as well as the current room the player is in.
+%\end{example}
 
-\begin{example}{(Humanoid)}
+\begin{example}{(MuJoCo Humanoid \cite{brockman2016openai})}
     The representation contains the joint position and velocities, as defined in the MuJoCo environment file. The dynamics equation corresponds to the physics equations from the simulator.
+
+    Since the state components are already corresponding to interpretable quantities (such as coordinates and velocities), applying our approach would not yield novel results for this environment.
+
+    If, in contrast, an image is given instead of the state components, our approach is expected to find the representation space of coordinates and their velocities again.
 \end{example}
 
 
