@@ -148,9 +148,9 @@ Reinforcement learning is a general paradigm in Artificial Intelligence (AI) tha
 While RL environments in general can have arbitrary complexity, practically interesting environments usually have a certain low-dimensional structure in them. For example, in the popular CartPole environment, the observation (as image) has 720 000 variables (pixels), while the dynamics of the cart can be explained using only 4 variables with a simple Newtonian update rule. Atari games \cite{brockman2016openai}, having 100 800 variables in an observation, can be described using only 128 bytes (of the RAM state). The dynamics in the pixel space would be complex, with one pixel at the next time-step potentially depending on all of the pixels on the previous one. However, the dynamics in the latent space is much simpler. The real world has this property as well \cite{Hamming1980}: while a camera can capture many megapixels per second observing a drone, the equations describing the dynamics of the drone only have a few variables, and are much simpler.
 
 
-RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or misleading content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Most capable agents are based on neural networks (NNs), and, therefore, it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability) \cite{Lipton}, because a priori there is no structure in the network: all variables depend on all variables of the input.
+RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or a recommendation engine showing polarizing or misleading content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Most capable agents are based on neural networks (NNs), and, therefore, it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability) \cite{Lipton}, because a priori there is no structure in the network: all variables depend on all variables of the input.
 
-Even the state-of-the-art interpretability approaches \cite{goh2021multimodal,} that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
+Even the state-of-the-art interpretability approaches \cite{goh2021multimodal} that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a truly concise and reliable explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
 
 In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning (or Abstraction Learning) task \cite{Bengio2007,Learning2014,Deng,Mitchell2020,Scholkopf2021}, with an objective of obtaining representations allowing for good explanations. To begin with, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
 
@@ -165,7 +165,7 @@ The quality of explanations given by such an agent would depend on the learned r
 
 The current explainable RL agents can be classified into three following categories\footnote{See \autoref{ch:related_work} for detailed references}. First, many projects learn sparse representations in terms of the feature vector sparsity: the predicted learned features associated with an observation are sparse at each time-step as a vector. Such a condition, however, is neither necessary nor sufficient for the {\em explanations} of the dynamics to be simple. Indeed, any sparse coding technique will yield sparse feature vectors (for example, by assigning the first $k$ most sparse vectors to all the $k$ states of the MDP in case of a finite MDP), but a feature at the next time-step would depend on many features at the previous time-step. Indeed, without any assumption on the way the sparse features are obtained, two neighboring states can have drastically different representations. Thus, an action potentially changes all of the variables. This demonstrates that sparse feature vectors are not sufficient to have simple explanations. On the other hand, it is possible to have simple explanations without sparse feature vectors. Indeed, the state of a CartPole environment has all of the components being non-0 most of the time, and, yet, these components comply with a simple explainable kinematics equation. Thus, sparse feature vectors are not necessary for simple explanations.
 
-The second approach is to apply feature attribution to the convolutional networks representing policies, and the analysis of circuits of the network is performed. This approach gives a) the parts of the image most relevant to predict the action and b) the visualization of what each neuron in the network is activated with. While such an approach is extremely robust to the type of the underlying agent (the analysis is performed after the training and does not require any changes in the architecture), the drawback is that it should be performed for every input image: we do not know how a particular new image would affect the outputs, since each output action still depends on all of the pixels.
+The second approach for explainable RL \cite{hilton2020understanding} is to apply feature attribution to the convolutional networks representing policies, and the analysis of circuits of the network is performed. This approach gives a) the parts of the image most relevant to predict the action and b) the visualization of what each neuron in the network is activated with. While such an approach is extremely robust to the type of the underlying agent (the analysis is performed after the training and does not require any changes in the architecture), the drawback is that it should be performed for every input image: we do not know how a particular new image would affect the outputs, since each output action still depends on all of the pixels.
 
 Finally, a line of work is investigating {\em causal} explanations of the agents' actions. This means that a causal graph corresponding to the environment is obtained, and an explanation for an action is then a simple path-finding from the action node to the reward node in this graph. The drawback of the current projects is that the graph is either given manually (by hand), or learned with significant manual work, such as designing the feature space. In this project, we extend this line of work by making the graph learnable end-to-end from the raw observations.
 
@@ -178,9 +178,9 @@ Mathematically, we require sparsity of the model's graph of dependencies -- the 
 To allow for such a simple {\em model}, we need to change the representation \cite{Kamalaruban}, from raw high-dimensional observations to the features, which the model predicts for the next time-step. Such features are obtained from a deep learning {\em decoder}\footnote{We call it a decoder rather than an encoder because the observations are already {\em encoded} by the function mapping the simple environment states such as the cart's position and velocity into the high-dimensional observation}, a function mapping observations to features. Given a decoder, the model can be obtained by simply fitting it in a supervised way, and only selecting the cause variables that lead to an improvement in the loss. Therefore, the decoder determines the simplicity of the model.
 
 Thus, the decoder needs to be trained jointly with the model, and it is indirectly regularized by the model: the model is directly regularized for sparsity (in terms of the number of edges), and the decoder needs to output data that such model can predict.
-In our approach, the decoder is a neural network, and a model is also a neural network with a special mechanism to enforce the sparsity of the architecture.
+In our approach, the decoder is a neural network, and the dynamics model is also a neural network with a special mechanism to enforce the sparsity of the architecture.
 
-If the the decoder is not additionally regularized for non-degeneracy, it is possible for the system to always predict constant features. This correspond to closing eyes and "predicting" successfully that everything that follows will be dark. The decoder needs to preserve the information that is relevant to the task the system is required to solve. Both in the real world, and in games, not all parts of the observations need to be predicted to achieve goals. For example, the color of an obstacle that a robot encounters is likely not important when it comes to avoiding it. However, this is task-specific, because, for example, a table is much less dangerous as an obstacle compared to water (a robot will be damaged if put into water, while an encounter with a table will likely only result in a loss of time when accomplishing a goal). Therefore, the model needs to predict task-specific features \cite{Cortese2020}.
+If the the decoder is not additionally regularized for non-degeneracy, it is possible for the system to always predict constant features. This correspond to closing one's eyes and "predicting" successfully that everything that follows will be dark. The decoder needs to preserve the information that is relevant to the task the system is required to solve. Both in the real world, and in games, not all parts of the observations need to be predicted to achieve goals. For example, the color of an obstacle that a robot encounters is likely not important when it comes to avoiding it. However, this is task-specific, because, for example, a table is much less dangerous as an obstacle compared to water (a robot will be damaged if put into water, while an encounter with a table will likely only result in a loss of time when accomplishing a goal). Therefore, the model needs to predict task-specific features \cite{Cortese2020}.
 
 In this project, we use the two popular types of regularization: we either predict the reward (thus, only the aspects of observations relevant for predicting the reward are kept), or the whole observation (all the aspects of the observation are represented in the latent features). This is achieved by introducing a {\em reconstructor} -- a network that predicts either the reward or the full observation given the latent features.
 
@@ -282,7 +282,7 @@ $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
 \section{Causal modeling and deep causal modeling}
 \label{sec:causal}
-{\em Structural Causal Models} \cite{Runge2019,Wong2020,Guo2020} are regular models fitting data from some distribution, in which we explicitly define which variables a given variable could depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
+{\em Structural Causal Models} \cite{Runge2019,Wong2020,Guo2020} are a subclass of the usual models fitting data from some distribution, in which we explicitly define the set of variables a given variable could depend on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
 
 More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$\footnote{We write time indices below for the whole vector $f_{\tau}=(f_1^{t=\tau},...,f_t^{t=\tau})$, and we write them above, if we additionally specify the index of the feature $f_i^{t=\tau}$}.
 
@@ -292,6 +292,8 @@ Granger causality \cite{Barnett2015} is defined in the way as in the example abo
 
 More generally, we set $\delta(PA_i,j)=\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i\setminus\{j\})\|-\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i)\|$. This is the difference in the losses without and with a feature $j$ when predicting the feature $i$, given the current set $PA_i$.
 Given a threshold $\varepsilon>0$, if $\delta(PA_i,j)<\varepsilon$, we could exclude $j$ from $PA_i$, and this would only worsen the prediction quality by $\varepsilon$.
+
+We note that while Granger causality does not imply "proper" causality \cite{Pearl2020}, and only imply correlation, we are applying it in the context of Reinforcement Learning. In RL, actions truly cause the observations to change \cite{rezende2020causally}, and, therefore, Granger causality can be seen as a way to uncover the structure of the environment.
 
 \subsection{Neural Granger Causality}
 \label{subsec:neural_granger}
@@ -568,15 +570,17 @@ While in practice, it would be hard to find such a function with gradient descen
 
     Consider the case of $H$ and $W$ being small (for example, $H=W=2$). In this case, we can design a transition model using only a single feature $f_1$ which takes the following values:
 
+\begin{center}
     $
-    \begin{array}{ccc}
-        f_1 & x & y \\
+    \begin{array}{c|cc}
+        f_1 & x & y \\\hline
         1 & 1 & 1 \\
         2 & 1 & 2 \\
         3 & 2 & 1 \\
         4 & 2 & 2
     \end{array}
     $
+\end{center}
 
     For example, if $x=1$ and $y=2$, we set $f_1=2$.
 
@@ -736,7 +740,7 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
     However, if we specify $|y-\hat{y}|\sim Uniform([0, a])$, we have $\var |y-\hat{y}|=(a^2)/12$, and the condition $P(|y-\hat{y}|>1)\leq 1-1/a$. Setting $P(|y-\hat{y}|>1)<1/n$ gives $a<n/(n-1)$. Since $\rho=O(a^2/n^2)$, we arrive at a looser condition $\rho< 1/n^2$. For example, for a discrete variable with $n=20$, to obtain $p_{bad}<1/20$, we will have to have $\rho\approx 3\times 10^{-2}$.
 \end{example}
 
-Later, we use this technique to set the threshold values for the relative MSE loss in the constrained optimization formulation of our problem.
+Later, we use this estimate for discrete variables to set the threshold values for the relative MSE loss in the constrained optimization formulation of our problem.
 
 \begin{example}
     Suppose that $y=0$ (a constant), and $\hat{y}\sim N(0, \sigma^2)$ -- the normal distribution. In this case, $\sigma[y]=1$ (because the true variance is $0$), and $\rho(y, \hat{y})=\mathbb E_{\hat{y}\sim N(0, \sigma^2)}(0-\hat{y})^2=\sigma^2$.
@@ -747,7 +751,7 @@ Later, we use this technique to set the threshold values for the relative MSE lo
 \end{example}
 
 \subsection{Non-degenerate decoder}
-The decoder needs to be invertible (or, at least, "partially" invertible, in a sense that all relevant information is kepy). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
+The decoder needs to be invertible (or, at least, "partially" invertible, in a sense that all relevant information is kept). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
 
 The reconstruction loss is defined in terms of the expected distance between the reconstructed and true observations:
 \begin{equation}
@@ -1055,6 +1059,8 @@ In order to implement the separate networks we use the {\tt einsum} operator in 
 
 \subsection{Project code structure}
 The code can be found in our \href{Github repository}{https://github.com/sergeivolodin/causality-disentanglement-rl}. The code uses gin config files for modular configuration, ray tune for hyperparameter tuning, Tensorboard for tracking metrics real-time, and Sacred to save all the data from all experiments.
+Parallel data collection is implemented with ray, and hyperparameter tuning studies are done with ray tune.
+The code has function-level and class-level documentation, unit- and integration tests, with continuous integration on GitHub.
 
 \subsection{Data collection and the true distribution}
 We run $k$ parallel data collection processes with ray, and aggregate the data in one ring buffer process. Each mini-batch is sampled as random steps from all of the collected episodes and given to the learner class. The ring buffer process maintains the ratio of collected steps to sampled steps to be at least a constant fraction $\zeta=0.5$ to prevent overfitting to only collected steps.
@@ -1215,9 +1221,9 @@ The environment additionally supports rendering observations as images using pix
 \end{figure}
 
 
-The environment is described fully in my previous publication \cite{Volodin2020} at ICLR CLDM 2020. The causal graph is shown in \autoref{fig:envtruekc}
+The environment is described fully in my previous publication \cite{Volodin2020} at ICLR CLDM 2020. $h$ is the height of the grid-world, and $w$ is the width. $f$ is the number of food items, $c$ is the number of chests, and $k$ is the number of keys. The correct causal graph is shown in \autoref{fig:envtruekc}
 
-\section{True and learned causal graphs}
+\section{Learned causal graphs}
 \subsection{SparseMatrix$(5, 7)$ environment}
 First, we run the algorithm on the environment without an encoder. The task then simply corresponds to selecting the relevant features. The algorithm uncovers the correct graph (see \autoref{fig:sm5adaptivelearnedgraph}).
 
@@ -1312,7 +1318,7 @@ python -m sparse_causal_model_learner_rl.learner \
 \begin{figure}
     \centering
     \includegraphics[width=0.6\linewidth]{plots/kc_onlycoord_graph}
-    \caption{The learned graph for KeyChest with only the health bar given along with the player coordinate mask.}
+    \caption{The learned graph for KeyChest with only the health bar given along with the player position mask.}
     \label{fig:kc_onlycoord_adaptivelearnedgraph}
 \end{figure}
 
@@ -1329,6 +1335,8 @@ We run a hyperparameter study with $140$ trials on VectorIncrement$(2)$ on pixel
 The results are shown in \autoref{fig:ablationve2fitadd}. First, it shows that removing the additional transformation ("rotation") improves the results (losses are lower when comparing {\tt no\_rotation} to {\tt original}) for this problem (in contrast, for the KeyChest environment, the version without rotation converges much slower).
 Secondly, not giving the mask to the model, or not using the relative loss increases all the target metrics, compared to the {\tt original} configuration.
 Using a multiple networks instead of a single network is generally improving the metrics, except for the additional loss.
+
+Initializing the probabilities with $0$ or $1$ leads to similar results, but with more time required to fit the data.
 
 \begin{figure}
     \centering
@@ -1424,7 +1432,7 @@ To obtain the meaning of the features learned by our system, existing interpreta
 The main drawback of the system is a higher train the time to fit a model of the environment, and then adjust the decoder to "sparsify" the model. Better (more adaptive) training procedures could speed up the convergence and increase the range of applicability of our approach.
 
 \section{Future work}
-A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis \cite{Nauta2019}. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
+A natural extension is to consider more complex environments, and multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis \cite{Nauta2019}. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
 
 Combining the abstract causal concept discovery with doing interventions using policies \cite{Volodin2020} using an RL agent could yield more structured exploration via {\em interventions} on the causal graph \cite{He2008,Frisch2014,Pathak2017,Dasgupta2019}, and, thus, faster convergence time.
 
@@ -1465,7 +1473,7 @@ The prior to have a simple model could make the agent require less data to train
 
 Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012,Veerapaneni2019,Didolkar2021,Gomez2006}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
 
-Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (a prori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
+Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold \cite{alquraishi2019alphafold} algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (a prori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
 
 % Appendices are optional
 \appendix
