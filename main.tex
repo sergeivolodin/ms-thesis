@@ -1298,18 +1298,17 @@ python -m sparse_causal_model_learner_rl.learner \
     \label{fig:kc_onlycoord_adaptivelearnedgraph}
 \end{figure}
 
-\section{Ablation study for VectorIncrement$(5)$}
+\section{Ablation study for VectorIncrement$(2)$}
+We run a hyperparameter study with $140$ trials on VectorIncrement$(2)$ on pixels. The search is over the following modes (with respect to the {\tt original} configuration):
+\begin{enumerate}
+    \item {\tt no\_mask}. The binary mask $B_i$ is not given to the model
+    \item {\tt no\_relative}. Instead of the relative MSE loss (\autoref{ch:design}), the regular Mean-Squared Error loss is used
+    \item {\tt no\_rotation}. The additional transforms (see \autoref{ch:design}) are not applied
+    \item {\tt single\_model\_dec}. The decoder is a single network, instead of a separate network for each feature.
+    \item {\tt single\_model\_rec}. The reconstructor is a single network instead of a separate network for each pixel.
+\end{enumerate}
 
 \section{Failure mode analysis}
-
-toy experiments
-
-resulting graphs
-
-ablation study
-
-failure modes
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%
