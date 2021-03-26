@@ -1308,8 +1308,23 @@ We run a hyperparameter study with $140$ trials on VectorIncrement$(2)$ on pixel
     \item {\tt single\_model\_rec}. The reconstructor is a single network instead of a separate network for each pixel.
 \end{enumerate}
 
-\section{Failure mode analysis}
+The results are shown in \autoref{fig:ablationve2fitadd}. First, it shows that removing the additional transformation ("rotation") improves the results (losses are lower when comparing {\tt no\_rotation} to {\tt original}).
+Secondly, not giving the mask to the model, or not using the relative loss increases all the target metrics, compared to the {\tt original} configuration.
+Using a single network instead of multiple networks is generally improving th metrics, except for the additional loss.
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{plots/ablation_ve2_fitadd}
+    \includegraphics[width=0.6\linewidth]{plots/ablation_ve2_half_fit}
+    \includegraphics[width=0.6\linewidth]{plots/ablation_ve2_mult_sparsity_gap}
+    \includegraphics[width=0.6\linewidth]{plots/ablation_ve2_reconstruction_acc}
+    \caption{The results of the ablation study. Each bar chart represents the metrics gathered during the $140$ trials with difference modes. The modes are on the $x$-axis (see text for description), and the quantity is on the $y$ axis. The charts (from top to bottom) represent: 1) The relative MSE quality of predicting $r$ and $d$ given the selected features 2) The observation fit exploration loss 3) Multiplicative sparsity gap 4) Reconstructor prediction accuracy}
+    \label{fig:ablationve2fitadd}
+\end{figure}
+
+
+\section{Failure mode analysis}
+The main issues are that either the model did not reach the target quality fit, or the search is stuck in a local minima. For example, running the method even on the {\tt sm5} environment with a linear encoder does not always provide satisfactory results: the answer graph has more edges than possible.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \chapter{Related Work}
