@@ -451,7 +451,7 @@ The Gumbel-Softmax trick (without modifications) would result in duplicated vari
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.99\linewidth]{diagrams/step_spaces}
-    \caption{Step representations used in the project. At the bottom, the environment's Game Engine (GE) generates the next state $s_{t+1}$ given the previous state $s_t$ and the action $a_t$. Next, the states are encoded into high-dimensional observations $o_t=E(s_t)$. The true state dynamics $s_t$, as well as the encoder $E$ are unknown. The proposed methods finds a feature space $f_t=D(o_t)$ by applying the decoder $D$, in which the dynamics becomes simple. The dynamics in the space of features is modeled by the function $M_f$. On the right, the parts of the dynamics model are shown for the MsPacman\cite{brockman2016openai} game.}
+    \caption{Step representations used in the project. At the bottom, the environment's Game Engine (GE) generates the next state $s_{t+1}$ given the previous state $s_t$ and the action $a_t$. Next, the states are encoded into high-dimensional observations $o_t=E(s_t)$. The true state dynamics $s_t$, as well as the encoder $E$ are unknown. The proposed methods finds a feature space $f_t=D(o_t)$ by applying the decoder $D$, in which the dynamics becomes simple. The dynamics in the space of features is modeled by the function $M_f$. On the right, the parts of the dynamics model are shown for the MsPacman \cite{brockman2016openai} game.}
     \label{fig:step_spaces}
 \end{figure}
 
@@ -723,7 +723,7 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
 \begin{example}
     Suppose that $T=2$, $y_{\cdot}=\varepsilon\cdot (0,1)$ and $\hat{y}_{\cdot}=\varepsilon\cdot (1, 0)$. We compute $\sigma[y]=0.5\varepsilon$, and $\rho(y_t,\hat{y}_t)=4$. This value does not depend on the scale $\varepsilon$ of $y$ and $\hat{y}$. In contrast, the traditional mean-squared error would yield $\rho_{mse}(y_t,\hat{y}_t)=\frac{1}{T}\sum\limits_{t=1}^T\left(y_t-\hat{y}_t\right)^2=0.5\varepsilon^2(1^2+1^2)=\varepsilon^2$, which depends on the scale of the features.
 
-    It is important that the quality metric does not depend on the magnitude of the inputs, as the magnitude of the predicted features can be arbitrary high or low.
+    It is important that the quality metric does not depend on the magnitude of the inputs, as the magnitude of the given by the decoder features can be arbitrary high or low.
 \end{example}
 
 \begin{example}
@@ -735,6 +735,8 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
 
     However, if we specify $|y-\hat{y}|\sim Uniform([0, a])$, we have $\var |y-\hat{y}|=(a^2)/12$, and the condition $P(|y-\hat{y}|>1)\leq 1-1/a$. Setting $P(|y-\hat{y}|>1)<1/n$ gives $a<n/(n-1)$. Since $\rho=O(a^2/n^2)$, we arrive at a looser condition $\rho< 1/n^2$. For example, for a discrete variable with $n=20$, to obtain $p_{bad}<1/20$, we will have to have $\rho\approx 3\times 10^{-2}$.
 \end{example}
+
+Later, we use this technique to set the threshold values for the relative MSE loss in the constrained optimization formulation of our problem.
 
 \begin{example}
     Suppose that $y=0$ (a constant), and $\hat{y}\sim N(0, \sigma^2)$ -- the normal distribution. In this case, $\sigma[y]=1$ (because the true variance is $0$), and $\rho(y, \hat{y})=\mathbb E_{\hat{y}\sim N(0, \sigma^2)}(0-\hat{y})^2=\sigma^2$.
@@ -775,13 +777,13 @@ We also would like the model to predict the future time-steps correctly. This ca
 
 Next, we compare the two approaches. First, if $L_{fit, feat}=0$, it follows that $L_{fit, obs}=0$. Indeed, the reconstruction loss $L_{rec}$ ensures that the next-step features result in correct observations. And $L_{fit, feat}=0$ ensures that the features are predicted correctly.
 
-In contrast, $L_{fit,obs}=0$ does {\em not} imply that $L_{fit, feat}=0$. Indeed, the model can add the $1$-st feature to all features: $\hat{f}_i=f_i+f_1$ and indicate that by adding a large enough number to another feature: $\hat{f}_s=f_s+10\sigma[f_s]$. The decoder first determines if $10\sigma[f_s]$ was added to $f_s$, and then either subtracts $f_1$ or keeps it. This way, $L_{fit, feat}=0$, but the model does not predict the correct features. This mean that in practice, we need to use $L_{fit,feat}$, and, otherwise, the learned model function does actually predict the next features, and, thus, the causal graph might be incorrect.
+In contrast, $L_{fit,obs}=0$ does {\em not} imply that $L_{fit, feat}=0$. Indeed, the model can add the $1$-st feature to all features: $\hat{f}_i=f_i+f_1$ and indicate that by adding a large enough number to another feature: $\hat{f}_s=f_s+10\sigma[f_s]$. The decoder first determines if $10\sigma[f_s]$ was added to $f_s$, and then either subtracts $f_1$ or keeps it. This way, $L_{fit, feat}=0$, but the model does not predict the correct features. While this is fine in case if we are using the learned model for planning, it would result in a wrong Structural Causal Model. This means that in practice, we need to use $L_{fit,feat}$ or otherwise, the learned model function does actually predict the next features, and, thus, the causal graph might be incorrect.
 
 \begin{example}{(Incorrect causal graph when only using $L_{fit, obs}$)}
     Consider the Game Engine from Figure \ref{fig:env2d2x2}. The features predicted by the decoder are $x$ and $y$ (not the ones in the figure).
     The model is the following function: $\hat{x}_{t+1}=x_t+10\cdot\mathds 1_{a=+y}-10\cdot\mathds 1_{a=-y}$, $\hat{y}_{t+1}=y_t+10\cdot\mathds 1_{a=+x}-10\cdot\mathds 1_{a=-x}$.
     It is possible to obtain $L_{fit, obs}=0$, because we can reconstruct both the previous state, and the action from $\hat{x}$, $\hat{y}$. Indeed, note that $|x_t|,|y_t|<2$. This means that, if $\hat{x}>10$, an action $+y$ was taken. The rest of the actions are reconstructed in the same way.
-    Next, knowing the actions we obtain $x_t$ and $y_t$. Next, the reconstructor performs "the function of the model", computes the (true) next $x_{t+1}$ and $y_{t+1}$, and then performs the reconstruction.
+    Next, knowing the actions we obtain $x_t$ and $y_t$. Next, the reconstructor performs "the role of the model", computes the (true) next $x_{t+1}$ and $y_{t+1}$, and then performs the reconstruction.
     In case if both of input arguments to the reconstructor are $|x_t|<10$ and $|y_t|<10$, the model does not perform the time-step prediction.
 
     The causal graph in this case is incorrect: $x$ depends on $+y$ and $-y$, and $y$ depends on $+x$ and $-x$.
@@ -792,13 +794,13 @@ Therefore, we have to use $L_{fit,feat}$. However, in practice, even when using 
 \begin{example}
 Consider the Game Engine from Figure \ref{fig:env2d2x2}. It has $2$ latent variables: $x$ and $y$. Now, suppose that the features (not on the figure) are $f_1=x$ and $f_2=\alpha y+(1-\alpha)x$ for $\alpha \ll 1$. Suppose that $L_{fit, feat}<\varepsilon$. Does it mean that the model "preserves" the information both about $x$ and $y$? No.
 
-Indeed, for the variable $x$, $L_{fit, feat}<\varepsilon$ implies that $\rho(x,\hat{x})<\varepsilon$, as required. However, for $y$, it does not. Indeed, we can show that it is possible to obtain any $\varepsilon$ bound on th e loss given $\hat{y}=\mathbb y$ (the constant prediction giving $\rho(y,\hat{y})=1$. Assume that $x$ is predicted perfectly. Next, consider
+Indeed, for the variable $x$, $L_{fit, feat}<\varepsilon$ implies that $\rho(x,\hat{x})<\varepsilon$, as required. However, for $y$, it does not. Indeed, we can show that it is possible to obtain any $\varepsilon$ bound on the loss given $\hat{y}=\mathbb E y$ (the constant prediction giving $\rho(y,\hat{y})=1$. Assume that $x$ is predicted perfectly. Next, consider the relative loss
 
 $$\rho(\alpha y+(1-\alpha)x,\alpha \hat{y}+(1-\alpha)\hat{x})=\frac{\mathbb E \left(\alpha(y-\hat{y})+(1-\alpha)(x-\hat{x})\right)^2}{\sigma[\alpha y+(1-\alpha)x]^2}$$.
 
 We assume that $x$ and $y$ are independent under $\pi$ and have the same variance of $c$. Then we compute $\sigma[\alpha y+(1-\alpha)x]^2=\sqrt{\alpha^2+(1-\alpha)^2}c$.
 
-Next, since $\hat{x}=x$, $\rho=1/\sigma^2\alpha^2\mathbb E(y-\hat{y})^2=\frac{\alpha^2}{\alpha^2+(1-\alpha)^2}$. Since this equation has a limit of $0$ when $\alpha\to 0$, and since the decoder is free to set $\alpha$ arbitrarily small, we can make $L_{fit, feat}$ arbitrarily small, while the model only predicts the value of $x$, but not the value of $y$.
+Next, since $\hat{x}=x$, $\rho=1/\sigma^2\alpha^2\mathbb E(y-\hat{y})^2=\frac{\alpha^2}{\alpha^2+(1-\alpha)^2}$. Since this equation has a limit of $0$ when $\alpha\to 0$, and since the decoder can give features with an arbitrarily small $\alpha$, we can make $L_{fit, feat}$ arbitrarily small, while the model only predicts the value of $x$, but not the value of $y$.
 
 Note that, without the relative loss, it is not even required for the model to predict the value of $x$. Indeed, to make the loss arbitrary small, it is sufficient for the decoder to reduce the magnitude of the features, and for the reconstructor to increase the input weights.
 \end{example}
@@ -837,11 +839,11 @@ $$
 \label{subsec:proba_ranges}
 In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
 
-However, we would like to have the case $P_{xx'}=1$ possible in our system. Indeed the difference in losses $L_{fit}\big|_{B_{xx'}=0}$ and $L_{fit}\big|_{B_{xx'}=1}$ can be drastic, and in the worst case we have $L_{fit}\big|_{B_{xx'}=0}-L_{fit}\big|_{B_{xx'}=1}=f+2$ (without using the important feature, each output feature can only be predicted as a constant, and the same for reward and done). Therefore, if $p_{\max}<1$, we have $L_{fit}=(f+2)(1-p_{\max})$, and the loss will no go lower than this value.
+However, we would like to have the case $P_{xx'}=1$ possible in our system. Indeed the difference in losses $L_{fit}\big|_{B_{xx'}=0}$ and $L_{fit}\big|_{B_{xx'}=1}$ can be drastic, and in the worst case we have $L_{fit}\big|_{B_{xx'}=0}-L_{fit}\big|_{B_{xx'}=1}=f+2$ (in the worse case, without using a single very important important feature, each output feature can only be predicted as a constant, and the same for the reward and done). Therefore, if $p_{\max}<1$, we have $L_{fit}=(f+2)(1-p_{\max})$, and the loss will not go lower than this value.
 
-Another issue that $p_{\max}<1$ yields is duplicated features. Indeed, if an important feature is only given with probability $p_{\max}<1$ and $\varepsilon=1-p_{\max}$, it would be beneficial to decrease the loss $L_{fit}$ to duplicate this feature (the decoder uses a spare feature to output the same value). Then, the model would {\em not} receive the value for an important feature with probability $\varepsilon^2$, instead of $\varepsilon$. This decreases the loss $\varepsilon$ times. Therefore, training the model with $p_{\max}<1$ would likely lead to feature duplication.
+Another issue that $p_{\max}<1$ yields is duplicated features. Indeed, if an important feature is only given with probability $p_{\max}<1$ and $\varepsilon=1-p_{\max}$, it would be beneficial for decreasing the loss $L_{fit}$ to duplicate this feature (the decoder uses a spare feature to output the same value). Then, the model would {\em not} receive the value for an important feature with probability $\varepsilon^2$, instead of $\varepsilon$. This decreases the loss $\varepsilon\ll 1$ times. Therefore, training the model with $p_{\max}<1$ would likely lead to feature duplication.
 
-In contrast, $p=p_{\min}>0$ would not have significant effects on the loss, as adding a non-important feature cannot improve the loss significantly, and definitely cannot worsen the loss (because more features are used). Now, since $p=p_{\min}\approx 0$, we have
+In contrast, having a lower bound $p=p_{\min}>0$ would not have significant effects on the loss, as adding a non-important feature cannot improve the loss significantly, and definitely cannot worsen the loss (because more features are used). Now, since $p=p_{\min}\approx 0$, we have
 $$
 L_{fit}=p\underbrace{L_{fit}\big|_{B_{xx'}=1}}_{L_1}+(1-p)\underbrace{\L_{fit}\big|_{B_{xx'}=0}}_{L_0}
 $$
@@ -849,7 +851,7 @@ Since $L_1\leq L_0$, $L_{fit}\leq pL_0+(1-p)L_0=L_0$, and $L_0\geq L_{fit}$. On 
 
 This means that $L_0\in (1, 1/(1-p))L_{fit}$. For $p=p_{\min}\approx 0$, the gap between the two solutions is small: $L_0\approx L_{fit}$.
 
-It means that the loss with $B_{xx'}$ disabled is upper-bounded by the current loss $L_{fit}$ (where $B_{xx'}$ is only enabled with a small probability). To output the final answer causal graph, we could threshold these probabilities to $0$, and the answer would only worsen a small amount in terms of the fit quality.
+It means that the loss with $B_{xx'}$ disabled is upper-bounded by the current loss $L_{fit}$ (where $B_{xx'}$ is only enabled with a small probability). To output the final answer causal graph, we could threshold these probabilities to $0$, and the loss given by this answer graph would only be worse than the training loss by a small amount in terms of the fit quality.
 
 \begin{example}
     Let's consider different cases, assuming that the model was fitted to convergence on a set of features with a fixed tensor of probabilities. Consider the case of $2$ input and output features, with features being equal and having a deterministic relationship (from input to output).
@@ -894,7 +896,9 @@ L_{fit}\big|_{p:=p^{expl}}=\mathbb E_{B\sim Be(p^{expl})} L_{fit}
 \end{figure}
 
 
-During training, the distribution for the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder. In order to alleviate this issue, two separate linear transforms are added right before and after the model (see Figure \ref{fig:architecture_rotation}). These transforms allow to quickly enable or disable features, or to change the linear combination of them:
+During training, the distribution given by the the decoder is non-stationary, because the feature space changes to optimize for sparsity. This happens because the model affects the decoder, and the reconstructor must match the decoder.
+
+When the feature space changes, the reconstruction loss would increase drastically, as the reconstructor is trained for the "old" feature space. Fitting the reconstructor is constly, and, therefore, we introduce two separate linear transforms right before and after the model (see Figure \ref{fig:architecture_rotation}). These transforms allow to quickly enable or disable features, or to change the linear combination of them:
 $$
 \begin{array}{clll}
 L_{fit, obs}&=\rho(R(Z_{post}(M_f(Z_{pre}(D(o_t)),a_t))), o_{t+1});& R\circ Z_{post}\circ M_f \circ Z_{pre}\circ D&\mapsto o_{t+1},\\
@@ -903,19 +907,23 @@ L_{fit, m-feat}&=\rho(M_f(Z_{pre}(D(o_t)),a_t), Z_{pre}(D(o_{t+1})));&M_f\circ Z
 \end{array}
 $$
 
-\subsection{NP-hardness in the general case}
-As in the linear case of the semester project, we prove the NP-hardness of finding the most sparse causal graph that fits the data. While it was shown \cite{Claassen2013} that finding the causal graph without a decoder is not NP-hard, it is if we consider a learned representation as well.
+These transforms make it simpler for the model to quickly change the feature space, without affecting the reconstruction loss.
 
-However, even in the case of a linear model, linear decoder and a linear reconstructor, the problem becomes NP-hard. Indeed, consider the linear dynamics $f_{t+1}=M_ff_t+M_aa_t$, where $M_f$ and $M_a$ are matrices of sizes $f\times f$ and $f\times a$. The decoder is also linear: $f_t=Do_t$ where $D$ is a matrix of size $f\times o$. The reconstructor $R$ s.t. $o_t=Rf_t$ is linear as well and has size $o\times f$. In the case where $f=o$ and $D$ is invertible, we can set $R=D^{-1}$. Now, the model for observations is linear as well: $o_{t+1}=D^{-1}\left(M_fDo_t+M_aa_t\right)$. Since the dynamics of the environment is fixed, the matrices $M_o=D^{-1}M_fD$ and $M_a^{o}=D^{-1}M_a$ are determined by the environment. Therefore, our task of finding a sparse model in this case boils down to finding a decoder matrix $D$ giving the most sparse feature transition matrix $DM_oD^{-1}$ and the action transition matrix $DM_a^{o}$:
+\subsection{NP-hardness in the general case}
+In the EPFL semester project at LCN, I considered the linear case of \sysname and proved the NP-hardness. Since a non-linear case includes a linear one, learning non-linear sparse causal models jointly with a representation is NP-hard as well.
+
+While it was shown \cite{Claassen2013} that finding the causal graph without a decoder is not NP-hard, the learned representation makes it NP-hard.
+
+Indeed, consider the linear dynamics $f_{t+1}=M_ff_t+M_aa_t$, where $M_f$ and $M_a$ are matrices of sizes $f\times f$ and $f\times a$. The decoder is also linear: $f_t=Do_t$ where $D$ is a matrix of size $f\times o$. The reconstructor $R$ s.t. $o_t=Rf_t$ is linear as well and has size $o\times f$. In the case where $f=o$ and $D$ is invertible, we can set $R=D^{-1}$. Now, the model for observations is linear as well: $o_{t+1}=D^{-1}\left(M_fDo_t+M_aa_t\right)$. Since the dynamics of the environment is fixed, the matrices $M_o=D^{-1}M_fD$ and $M_a^{o}=D^{-1}M_a$ are determined by the environment. Therefore, our task of finding a sparse model in this case boils down to finding a decoder matrix $D$ that would give the most sparse feature transition matrix $DM_oD^{-1}$ and the action transition matrix $DM_a^{o}$:
 $$
 \|DM_oD^{-1}\|_0+\|DM_a^{o}\|_0\to\min\limits_{\exists D^{-1}}
 $$
 
-Now, if $M_o=0$ (the environment does not have a state), the problem becomes Sparse Dictionary Learning \cite{Vincent2002}, a known NP-hard problem.
+Now, if $M_o=0$ (the environment does not have a state), the problem becomes (exactly) Sparse Dictionary Learning \cite{Vincent2002}, a known NP-hard problem. Since this is a special case of our problem, our problem is NP-hard as well.
 
-Another extreme $M_a^o=0$ requires to find a basis given by $D$ in which a matrix $DM_oD^{-1}$ is most sparse. If we allow for complex variables, this problem is polynomial-time computable, as we only need to diagonalize the matrix $M_o$.
+Another extreme $M_a^o=0$ requires to find a basis given by $D$ in which a matrix $DM_oD^{-1}$ is most sparse. If we allow for complex variables, this problem is polynomial-time computable, as we only need to diagonalize the matrix $M_o$. An approximation in the real case could be the Jordan normal form.
 
-Note that the case of one action corresponding exactly to one feature \cite{Thomas2018,Corneil2018} means that $DM_a^o$ has only a single element in each column. Since $D$ transforms the columns of $M_a^o$, in this linear example, it would mean that the columns of $M_a^o$ are collinear, and we can find actions mapping to the same feature by finding sets of collinear vectors in polynomial time.
+Note that the case of one action corresponding exactly to one feature \cite{Thomas2018,Corneil2018} means that $DM_a^o$ has only a single element in each column. Since $D$ transforms the columns of $M_a^o$, in this linear example, it would mean that the columns of $M_a^o$ are collinear, and we can find $D$ by finding sets of collinear vectors in $M_a^o$ in polynomial time.
 %If we know the target matrix $M_a$ (for example, in a grid-world with actions (left, right, up, down) and two state components, it would be $\left(\begin{array}{cccc}1&-1&0&0\\0&0&1&-1\end{array}\right)$). Then, $D$ can be found via the pseudo-inverse.
 
 \subsection{Optimization schemes}
@@ -983,7 +991,7 @@ We present the approaches below:
 
 We compare the versions \ref{eq:opt_scheme_linear_comb}, \ref{eq:opt_scheme_sparsity_guess}, \ref{eq:opt_scheme_fit_guess_lin_comb}, \ref{eq:opt_scheme_fit_guess_granular} in \autoref{ch:evaluation}.
 
-In terms of the ease of use, \autoref{eq:opt_scheme_fit_guess_granular} requires least knowledge about the problem. Indeed, we only set the relative thresholds for the losses (values less than $1$), and obtain the most sparse causal graph allowing for such a loss.
+In terms of the ease of use, \autoref{eq:opt_scheme_fit_guess_granular} requires least knowledge about the problem. The parameters $\lambda$, if set manually, have a drastic effect on the quality of the solution. In contrast, in \autoref{eq:opt_scheme_fit_guess_granular} we only set the relative thresholds for the losses (values less than $1$), and obtain the most sparse causal graph allowing for such a loss.
 
 {\bf Solving constrained problems.} To solve the constrained problems with gradient descent we use the Lagrange primal-dual method \cite{Adegbege2021}. We consider the Lagrange function for the \autoref{eq:opt_scheme_fit_guess_granular}:
 $$
@@ -1008,7 +1016,7 @@ x_{t+1}&=x-\eta\frac{\partial L_{agrange}}{\partial x}\\
 \end{array}
 \end{equation}
 
-For convex functions, this algorithm is known to converge to a saddle point of \autoref{eq:opt_lagrange}. The algorithm has the following intuitive interpretation. Suppose that $\lambda_i$ is small, and $i'th$ constraint is violated: $L_i>c_i$. Since $\frac{\partial L_{agrange}}{\partial \lambda_i}=L_i-c_i>0$, the parameter $\lambda_i$ would increase. If, in contrast, the constraint has a slack (is not violated) and $L_i<c_i$, the parameter $\lambda_i$ would decrease to allow optimizing for the objective $L_{sparse}$.
+The algorithm has the following intuitive interpretation. Suppose that $\lambda_i$ is small, and $i'th$ constraint is violated: $L_i>c_i$. Since $\frac{\partial L_{agrange}}{\partial \lambda_i}=L_i-c_i>0$, the parameter $\lambda_i$ would increase. If, in contrast, the constraint has a slack (is not violated) and $L_i<c_i$, the parameter $\lambda_i$ would decrease to allow optimizing for the objective $L_{sparse}$.
 Therefore, we expect the following dynamics: first, the algorithm would turn most of the features on in order to satisfy the constraints, and then it would optimize for sparsity.
 
 If we apply this algorithm for the other (symmetric) formulation of our problem (\autoref{eq:opt_scheme_sparsity_guess}), it would first disable features, and then, once the target sparsity level was reached, it would care about fitting the reconstructor and the SCM functions.
@@ -1021,10 +1029,10 @@ If we apply this algorithm for the other (symmetric) formulation of our problem 
 \chapter{Implementation}
 \label{ch:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%
-In this chapter we discuss the specific of our implementation of \sysname. We touch such issues as the initialization of the probability metrics, tips and know-how during training, and the project structure.
+In this chapter we discuss the specific of our implementation of \sysname. We touch such issues as the initialization of the probability values, tips and know-how during training, and the project structure.
 
 \subsection{Initialization}
-We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We this method to initializing with all zeros, all ones, or a random initialization in the next section
+We initialize the probability matrix to be an identity for the features (a feature only affects itself), and to a full matrix for the rest (actions, reward and done). We compare this method to initializing with all zeros, all ones, or a random initialization in the next section
 
 \subsection{Metrics}
 In order to assess the quality of the solution, we track the following quantities:
@@ -1035,13 +1043,13 @@ In order to assess the quality of the solution, we track the following quantitie
 
     A multiplicative version $\Delta^{mult}_{sparse}=\frac{L_p-L_{full}}{L_p}$. This value is positive when $\Delta^{add}$ is positive, and this value is less than $1$, because $L_{full}>0$
 
-    \item Number of edges in the graph, or the number of large components in the matrix $P$. We compute a k-means clustering\footnote{A simple thresholding with $p=0.5$ would suffice to obtain the final graph, however, the benefit of K-means is that it works even when the training is not fully complete, and the probabilities are not fully $p_{\min}$ or $1$. This allows the see manually the preliminary results while training and quickly understand if the trial is likely to be successful.} in 1-dimensional space of all probabilities $\{P_{xx'}\}_{x\in X_{in},x'\in X_{out}}$. This gives a threshold $\tau\in[0,1]$. Next, we select the pairs $(x, x')$ such that $P_{xx'}>\tau$. This gives the answer causal graph, and the number of non-zero components.
+    \item Number of edges in the graph, or the number of large components in the matrix $P$. We compute a k-means clustering\footnote{A simple thresholding with $p=0.5$ would suffice to obtain the final graph, however, the benefit of K-means is that it works even when the training is not fully complete, and the probabilities are not fully $p_{\min}$ or $1$. This allows the see visually the preliminary results while training and quickly understand if the trial is likely to be successful.} in 1-dimensional space of all probabilities $\{P_{xx'}\}_{x\in X_{in},x'\in X_{out}}$. This gives a threshold $\tau\in[0,1]$. Next, we select the pairs $(x, x')$ such that $P_{xx'}>\tau$. This gives the answer causal graph, and the number of non-zero components.
 
-    \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
+    \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off. At the end, we also expect it to be low, as only the important features have $P\approx 1$, and the rest have $P\approx 0$. In the middle of the training, this quantity must increase.
 \end{itemize}
 
 \subsection{Separate networks to predict pixels and features}
-Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}. This approach can be found in \cite{Ke2019}
+Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, the convolutional layers are shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}. This approach can be found in \cite{Ke2019}
 
 In order to implement the separate networks we use the {\tt einsum} operator in pytorch to implement "vectorized" fully-connected networks.
 
@@ -1081,14 +1089,14 @@ Empirically, the last approach works better.
 \chapter{Evaluation}
 \label{ch:evaluation}
 %%%%%%%%%%%%%%%%%%%%
-In this section, we present the results of running \sysname on a number of benchmark environment that we develop, as well as on established baselines.
+In this section, we present the results of running \sysname on a number of benchmark environment that we develop, as well as on established baselines (such as the pure-navigation grid-world).
 We denote the resulting graph given by the algorithm as $\hat{G}_{x'x}$ for whether there is an edge from a cause variable (one at the current time-step) $x\in X_{in}=\{f_1,...,f_f,a_1,...,a_a\}$ to an effect variable (one at the next time-step) $x'\in X_{out}=\{f_1,...,f_f,r,d\}$ (see \autoref{ch:design}). The true causal graph for an environment (if exists) is denoted as $G_{x'x}$. The matrices $G_{x'x}$ and $\hat{G}_{x'x}$ have binary values $G_{x'x}\in\{0,1\}$. $1$ means that the edge is present, and $0$ means that the edge is absent. The total number of edges is $K(G)=\sum\limits_{x\in X_{in}}\sum\limits_{x'\in X_{out}}G_{x'x}$. To obtain $\hat{G}$ from $P$, a thresholding algorithm (K-Means) is applied (see \autoref{ch:implementation} and \autoref{ch:design}).
 
 \section{Environments}
 We describe the environments that we develop for this project, as well as established benchmarks. Each environment tests a particular aspect of learning causal graphs. The SparseMatrix environment considers a case of correlated features in which each action can affect multiple features. VectorIncrement has a simple dynamics, but the observations are encoded in pixel space. KeyChest environment is a grid-world with variable complexity with both frequently changing and hard-to-change features.
 
 \subsection{SparseMatrix$(n,k)$ environment}
-The simplest environment we consider is SparseMatrix(n,k). Given the dimensionality of the space, we randomly sample a matrix $A\in \mathbb R^{n\times n}$ at the initialization of the environment (once per training session, i.e. the matrix is the same after a {\tt reset()}).
+The simplest environment we consider is SparseMatrix$(n,k)$. Given the dimensionality of the space, we randomly sample a matrix $A\in \mathbb R^{n\times n}$ at the initialization of the environment (once per training session, i.e. the matrix is the same after a {\tt reset()}).
 
 The matrix $A$ is sampled to have $k\geq n$ non-zero component and that it is non-degenerate. We first permute the numbers $[n]$, and then set $A_{ij}:=\pm 1$.
 After that, elements $k-n$ are added to random "free" (zero) spots $A_{ij}:=\pm 1$.
@@ -1180,12 +1188,12 @@ $$
 
 If no encoder is applied, the ground-truth graph (without an encoder or a decoder) is given by $G_{f_if_j}=\mathds 1_{i=j}$, $G_{f_ia_j}=\mathds 1_{i=j}$, $G_{d,f_i}=1$, $G_{d,a_j}=0$, $G_{r,f_i}=1$, $G(r,a_i)=1$ for all but one action (we can always determine the action taken by all but one one-hot variables, since at every step exactly one action is taken). See Figure \ref{fig:ve5nodec}.
 
-The environment additionally supports rendering observations as images using a low-dimensional digits font (see \autoref{fig:ve5obs}), as well as optionally permuting the pixels of the observation to make it hard for humans to play.
+The environment additionally supports rendering observations as images using pixelized digits (see \autoref{fig:ve5obs}), as well as optionally permuting the pixels of the observation to make it hard for humans to play.
 
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.7\linewidth]{diagrams/ve5_nodec}
-    \caption{The causal graph for VectorIncrement$(5)$ without a decoder or an encoder. First, each state component determines its own value at the next time-step (black self-loops for $s_i$). Secondly, a corresponding action increments the state component (red line from $a_i$ to $s_i$). Finally, all state components affect reward and done (green lines from $s_i$ to reward and done), and all but one action affect the reward (red lines from $a_i$ to reward). This one of 5 possible causal graphs for this environment (one of the actions can be disconnected from the reward node). The number of edges is equal to $K(G)=24$ (out of $120$), or $K(G)=5n-1$ out of $2n^2+4n$ in the general case of VectorIncrement$(n)$}
+    \caption{The causal graph for VectorIncrement$(5)$ without a decoder or an encoder. First, each state component determines its own value at the next time-step (black self-loops for $s_i$). Secondly, a corresponding action increments the state component (red line from $a_i$ to $s_i$). Finally, all state components affect reward and done (green lines from $s_i$ to reward and done), and all but one action affect the reward (red lines from $a_i$ to reward). This one of 5 possible causal graphs for this environment (one of the actions can be disconnected from the reward node). The number of edges is equal to $K(G)=24$ (out of $120$), or $K(G)=5n-1$ out of $2n^2+4n$ in the general case of VectorIncrement$(n)$. This family of graphs is not minimal in terms of the number of edges for this environment.}
     \label{fig:ve5nodec}
 \end{figure}
 
@@ -1211,7 +1219,7 @@ The environment is described fully in my previous publication \cite{Volodin2020}
 
 \section{True and learned causal graphs}
 \subsection{SparseMatrix$(5, 7)$ environment}
-First, we run the algorithm on the environment without an encoder. The task then simply corresponds to selecting the relevant features. The algorithm correctly uncovers the correct graph (see \autoref{fig:sm5adaptivelearnedgraph}).
+First, we run the algorithm on the environment without an encoder. The task then simply corresponds to selecting the relevant features. The algorithm uncovers the correct graph (see \autoref{fig:sm5adaptivelearnedgraph}).
 
 The results can be replicated by running the following command (about $3$ minutes):
 \begin{verbatim}
@@ -1231,7 +1239,7 @@ python -m sparse_causal_model_learner_rl.learner \
 \end{figure}
 
 \subsection{VectorIncrement$(5)$ environment}
-Given the permuted pixels, the methods successfully uncovers a correct causal graph, with even fewer edges than anticipated. The results can be reproduced by running the following command (about $7.5$ hours):
+Given the permuted pixels, the method successfully uncovers a correct causal graph, with even fewer edges than anticipated. The results can be reproduced by running the following command (about $7.5$ hours):
 \begin{verbatim}
 python -m sparse_causal_model_learner_rl.learner \
   --n_gpus 1 --nofail \
@@ -1267,7 +1275,7 @@ python -m sparse_causal_model_learner_rl.learner \
 
 The correlation matrix between the decoder features and the digits is shown in \autoref{fig:ve5featurecorr}. The step variable can be obtained from one of the features with $R^2=0.989$ and the p-value $p<10^{-4}$.
 
-The \autoref{fig:ve5adaptivelearnedgraph} shows the learned graph for the environment. It can be seen that the graph is simpler than expected (Figure \ref{fig:ve5nodec}). Indeed, while $a_1,a_4,a_0$ are associated with features $f_1,f_3,f_4,f_0$, the action $a_2$ does not correspond to a feature. Instead, a feature $f_2$ determines {\tt done}. This is correct: indeed, {\tt done} can be computed via the current time-step, regardless of the values of the state components. The value of the state component associated with $a_2$ can be computed by subtracting all the other features from the time feature. Additionally, $a_3$ does not affect the reward. This is also correct, because at each time-step at least one action is taken. Therefore, we can determine that $a_3$ is taken by noticing that no other action is taken.
+The \autoref{fig:ve5adaptivelearnedgraph} shows the learned graph for the environment. It can be seen that the graph is simpler than expected (Figure \ref{fig:ve5nodec}). Indeed, while $a_3,a_1,a_4,a_0$ are associated with features $f_1,f_3,f_4,f_0$, the action $a_2$ does not correspond to any feature. In addition, only the feature $f_2$ determines {\tt done}. This is actually correct: indeed, {\tt done} can be computed via the current time-step, regardless of the values of the state components. The value of the state component associated with $a_2$ can be computed by subtracting all the other features from the time feature. Additionally, $a_3$ does not affect the reward. This is also correct, because at each time-step at least one action is taken. Therefore, we can determine that $a_3$ is taken by noticing that no other action is taken.
 
 The \autoref{fig:ve5adaptivetrainlosses} shows the training curves during the run of \sysname. First, the Lagrange multiplier increases up to its maximal value of $10^{3}$, which corresponds to the phase where the initial (non-sparse) model is learned. Next, the parameter decreases and oscillates with decreasing magnitude. This corresponds to selecting the right edges in the graph. The oscillation in the Lagrange multiplier cause the values of $P_i$ to oscillate as well, which leads to an oscillation in the fit loss. Note that the sparsity gap is also oscillating, which means that the oscillation is caused solely by the change in the probabilities (and not in the quality of the model given all the features).
 %\subsection{VectorIncrement$(2)$ environment}
@@ -1304,7 +1312,7 @@ python -m sparse_causal_model_learner_rl.learner \
 \begin{figure}
     \centering
     \includegraphics[width=0.6\linewidth]{plots/kc_onlycoord_graph}
-    \caption{The learned graph for KeyChest with only the health bar given along with the player mask. Left: the resulting causal graph. Right: the causal graph as a node adjacency matrix.}
+    \caption{The learned graph for KeyChest with only the health bar given along with the player coordinate mask.}
     \label{fig:kc_onlycoord_adaptivelearnedgraph}
 \end{figure}
 
@@ -1318,9 +1326,9 @@ We run a hyperparameter study with $140$ trials on VectorIncrement$(2)$ on pixel
     \item {\tt single\_model\_rec}. The reconstructor is a single network instead of a separate network for each pixel.
 \end{enumerate}
 
-The results are shown in \autoref{fig:ablationve2fitadd}. First, it shows that removing the additional transformation ("rotation") improves the results (losses are lower when comparing {\tt no\_rotation} to {\tt original}).
+The results are shown in \autoref{fig:ablationve2fitadd}. First, it shows that removing the additional transformation ("rotation") improves the results (losses are lower when comparing {\tt no\_rotation} to {\tt original}) for this problem (in contrast, for the KeyChest environment, the version without rotation converges much slower).
 Secondly, not giving the mask to the model, or not using the relative loss increases all the target metrics, compared to the {\tt original} configuration.
-Using a single network instead of multiple networks is generally improving th metrics, except for the additional loss.
+Using a multiple networks instead of a single network is generally improving the metrics, except for the additional loss.
 
 \begin{figure}
     \centering
@@ -1342,56 +1350,56 @@ The main issues are that either the model did not reach the target quality fit, 
 %%%%%%%%%%%%%%%%%%%%%%
 
 {\bf Symbolic approaches.}
-\cite{Ave, DesJardins1993,Evans2018} considers a symbolic reasoning approach. \cite{Jonsson2006} considers grouping states into "meta states". \cite{Corneil2018} defines "prototype" states.
-\cite{Yarats2016} cluster the environment's state space.
-\cite{Fortuin2018} clusters time series and fits a Markov model in this space.
+ \cite{Ave, DesJardins1993,Evans2018} considers a symbolic reasoning approach. \cite{Jonsson2006} considers grouping states into "meta states". \cite{Corneil2018} defines "prototype" states.
+ \cite{Yarats2016} cluster the environment's state space.
+ \cite{Fortuin2018} clusters time series and fits a Markov model in this space.
 
-The main difference between symbolic approaches and causal graphs is that while the structure of the graph is discrete, the transition functions that determine the nodes' values can be arbitrary neural networks. Our work can be seen as complementary to the case when the transition dynamics is more complex.
+The main difference between symbolic approaches and causal graphs is that while the structure of the graph is discrete, the transition functions that determine the nodes' values can be arbitrary neural networks. Our work can be seen as complementary to the case when the transition dynamics is more complex than switching between prototype states (for example, continuous state-spaces), or states cannot be clustered using traditional approaches.
 
 {\bf Other approaches to RL or time series interpretability.}
-\cite{Thomas2018} consider a model where one action corresponds to a change in one feature. Our work generalize this approach (see \autoref{ch:design}).
+ \cite{Thomas2018} consider a model where one action corresponds to a change in one feature. Our work generalize this approach (see \autoref{ch:design}).
 
-\cite{Everitt2019,Martic2020,Madumal2019} use the tools of causal reasoning to interpret agents. Our work can be seen as complementary, as \cite{Everitt2019,Martic2020,Madumal2019} use an existing causal graph of the environment to provide explanation. In contrast, our work focuses on learning the graph.
+ \cite{Everitt2019,Martic2020,Madumal2019} use the tools of causal reasoning to interpret agents. Our work can be seen as complementary, as \cite{Everitt2019,Martic2020,Madumal2019} use an existing causal graph of the environment to provide explanation. In contrast, our work focuses on learning the graph.
 
 A number of approaches involve sparse feature vectors for interpretability \cite{Weinstein,Zhu2017,VandenOord2017,Cha2018,Deng,Liu2018,Javed2019,Rafati2019,Pei2019,Lillicrap2019,Petros2020,Fallah2020,Javed2020}. See \autoref{ch:design} for discussion.
 
-\cite{zambaldi2018relational} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. A similar technique can be seen in \cite{hahne2019attention} to solve visual reasoning tasks (similar to IQ tests).
+ \cite{zambaldi2018relational} introduce an attention module inside a Reinforcement Learning agent (inside the policy and the value networks), allowing it to solve tasks not solved by a simple MLP, because the task requires relational reasoning. A similar technique can be seen in \cite{hahne2019attention} to solve visual reasoning tasks (similar to IQ tests).
 Using an attention mechanism could be the next step for our project (see \autoref{ch:conclusion}).
 
 
 {\bf Natural language for explanations.}
-\cite{Madumal2019,Ehsan2018} generate natural language explanations given a causal model of the environment. Our work can be seen as complementary to \cite{Madumal2019}: we learn the causal graph that can be used as input for that method.
+ \cite{Madumal2019,Ehsan2018} generate natural language explanations given a causal model of the environment. Our work can be seen as complementary to \cite{Madumal2019}: we learn the causal graph that can be used as input for that method.
 
 %Sparse Dictionary Learning \cite{Vincent2002, Kreutz-delgado2003, Mairal2009, Baze2012}
 
 {\bf Causal modeling.}
-\cite{Barnett2015} apply a {\em linear} decoder and learn a sparse linear model in the context of Granger causality. In our project, we focus on the non-linear case.
+ \cite{Barnett2015} apply a {\em linear} decoder and learn a sparse linear model in the context of Granger causality. In our project, we focus on the non-linear case.
 
 A number of approaches learn the sparse graph, but without a learned representation (without a decoder network) \cite{Kalainathan2018,Fu2013,Ke2019,Chalupka2017,Javed2020,Battaglia2016}. In this thesis, we focus on learning the representation as well.
 
-\cite{Kalainathan2018, Ng2019} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). Our project uses this technique (see \ref{ch:background}).
+ \cite{Kalainathan2018, Ng2019} propose to learn a distribution over causal graph in a mean-field way (all edges are independent and modelled as Bernoulli distribution). Our project uses this technique (see \ref{ch:background}).
 
-\cite{brouillard2020differentiable} extend this approach to modelling interventions, and this line of work can be used to design better exploration techniques, when combined with learning sparse graphs (see \autoref{ch:conclusion}).
+ \cite{brouillard2020differentiable} extend this approach to modelling interventions, and this line of work can be used to design better exploration techniques, when combined with learning sparse graphs (see \autoref{ch:conclusion}).
 
-\cite{Javed} learn causal graphs in the context of RL. Our work can be seen as an extension of this project to a learned decoder, and the cases where sparsity is important.
+ \cite{Javed} learn causal graphs in the context of RL. Our work can be seen as an extension of this project with a learned decoder, and the cases where sparsity is important.
 
-\cite{Nair2019} implicitly code for the edges of a causal graph in terms of a neural network, i.e. the network predicts which edges to add or remove. In contrast, we use a matrix of probabilities which determines the node adjacency matrix. Using the approach of \cite{Nair2019} could yield potential improvements in our framework.
+ \cite{Nair2019} implicitly code for the edges of a causal graph in terms of a neural network, i.e. the network predicts which edges to add or remove. In contrast, we use a matrix of probabilities which determines the node adjacency matrix. Using the approach of \cite{Nair2019} could yield potential improvements in our framework.
 
-%\cite{genewein2020algorithms} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes.
+% \cite{genewein2020algorithms} propose to use probability trees instead of graphical models to encode causal relationships. The benefit is that the set of parents of a node can be dynamically dependent on values of other nodes.
 
-\cite{Johnson2016,Tang2019,Kurutach2021,Chalupka2015} learn a causal model jointly with a decoder, but do not evaluate the sparsity. In our project, we focus on the sparsity as well as on jointly learning the model with a decoder.
+ \cite{Johnson2016,Tang2019,Kurutach2021,Chalupka2015} learn a causal model jointly with a decoder, but do not evaluate the sparsity. In our project, we focus on the sparsity as well as on jointly learning the model with a decoder.
 
 {\bf Graph neural networks.}
- \cite{Battaglia2016} introduces Graph Neural Networks \cite{Zhou2018} (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. The idea is to combine the strengths of "handcoded" or "biased" models and the "end-to-end" or "from scratch" models. \cite{Velickovic2020} extend this idea by allowing a linear (in the number of nodes) number the edges to be learned.
+ \cite{Battaglia2016} proposes Graph Neural Networks \cite{Zhou2018} (GNNs) based on the idea of thoughts as graphs of connections between abstract concepts. \cite{Velickovic2020} GNNs by allowing a linear (in the number of nodes) number the edges to be learned.
 
- \cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces and for discovering the laws for Dark Matter. The symbolic expression (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
+ \cite{Cranmer2020} use GNNs to discover unknown laws of dynamics. They apply symbolic regression to the node and edge models of the GNN, to extract the symbolic expression. The model is used for pairwise forces in a particle environment, and for discovering the physical laws of Dark Matter in an automated way. The symbolic expression framework (Eureqa) generalizes better than the non-symbolic model it was extracted from. $l_1$ sparsity is used in the GNN to ease the problem for the symbolic regression.
 
-One important difference between GNNs and Structural Causal Models (SCMs) used in this project is that the graph is usually fixed for GNNs. In contrast, to learn the SCM is to learns the graph of dependencies.
+One important difference between GNNs and Structural Causal Models (SCMs) used in this project is that the graph itself (as a node adjacency matrix) is usually fixed for GNNs. In contrast, to learn the SCM is to learn the graph of dependencies.
 
 % \cite{Johnson2016} introduce a variational approach to model dynamics: probabilistic graphical model in terms of Switching Linear dynamics is applied to a learned embedding using a VAE. The model is applied to 1D and 2D image tasks, and it successfully uncovers the underlying dynamics.
 
-\cite{VanDenOord2018} uses contrastive losses to obtain a representation and a model in the latent space.
-\cite{Kipf2020} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models. Using the contrastive loss in our approach could yield faster convergence of the world model, and using sparsity constraints along with the approach of \cite{Kipf2020} could lead to better interpretability.
+ \cite{VanDenOord2018} uses contrastive losses to obtain a representation and a model in the latent space.
+ \cite{Kipf2020} work on learning abstract representations from pixels in 3D environments and in Atari using Graph neural networks, leading to more interpretable world (environment) models. Using the contrastive loss in our approach could yield faster convergence of the world model, and using sparsity constraints along with the approach of \cite{Kipf2020} could lead to better interpretability.
 
  % a neural autoregressive model. The paper suggests that fitting many-step future predictions is of utter importance, since only in such predictions the model is tested for "true" generalization of high-level features. The paper also suggests that MSE or other losses commonly used for reconstruction are not optimal, and generative models are hard to train. As an alternative, the paper suggests optimizing for the mutual information between the latent code and the original inputs. The model predicts the log-odds ratio for an offset $k$ and input up to time $t$ as $f_k(x_{t+k},c_t)\sim \frac{p(x_{t+k}|c_t)}{p(x_{t+k})}$ with a model $f_k(x_{t+k}, c_t)=e^{D(x_{t+k})^TW_kc_t}$. This model is trained using the InfoNCE loss (noise-contrastive estimation) $L=-\mathbb E_X\log\frac{f_k(x_{t+k}, c_t)}{\sum_{x_j\in X}f_k(x_j,c_t)}$. The dataset $X$ consists of one sample $x\sim p(x_{t+k}|c_t)$ (ground truth) and negative samples $x\sim p(x_{t+k})$ (the prior).
 
@@ -1409,19 +1417,21 @@ One important difference between GNNs and Structural Causal Models (SCMs) used i
 \label{ch:conclusion}
 %%%%%%%%%%%%%%%%%%%%
 
-We present the first (up to our knowledge) that learns a sparse causal graph of a Reinforcement Learning environment with a learned feature representation. We test our approach on a set of benchmarks and show a success of the proposed approach: it outputs an interpretable causal graph and allows to understand the environment. Using this approach could yield increased interpretability of Reinforcement Learning agents if used together with already existing methods requiring a causal graph as an input.
+We present the first (up to our knowledge) system that learns a sparse causal graph of a Reinforcement Learning environment with a learned feature representation, from raw pixels. We test our approach on a set of benchmarks and show a success of the proposed approach: it outputs an interpretable causal graph and allows to understand the environment. Using this approach could yield increased interpretability of Reinforcement Learning agents if used together with already existing methods requiring a causal graph as an input.
 
-The main complexity right now is the time to fit a model of the environment, and then adjust the decoder to sparsify the model. Better (more adaptive) training procedures could speed up the convergence and increase the range of applicability of our approach.
+To obtain the meaning of the features learned by our system, existing interpretability techniques based on feature attribution and analyzing neural network circuits \cite{goh2021multimodal} can be used.
+
+The main drawback of the system is a higher train the time to fit a model of the environment, and then adjust the decoder to sparsify the model. Better (more adaptive) training procedures could speed up the convergence and increase the range of applicability of our approach.
 
 \section{Future work}
 A natural extension is to consider multiple time-step dependencies, either by stacking several subsequent observations together, or by using recurrent neural networks with structured sparsity, or by using an attention mechanism in the time axis \cite{Nauta2019}. It would be interesting to apply our approach to natural languages and other challenging not-yet-fully-understood time series and environments such as the protein folding problem. This could yield novel insights into the latent nature of these problems.
 
 Combining the abstract causal concept discovery with doing interventions using policies \cite{Volodin2020} using an RL agent could yield more structured exploration via {\em interventions} on the causal graph \cite{He2008,Frisch2014,Pathak2017,Dasgupta2019}, and, thus, faster convergence time.
 
-An even better approach would use contrastive losses \cite{VanDenOord2018,Kipf2020,Mohammadi2020} instead of the reconstructor. However, this did not work as well as the reconstruction loss in the observation space in this project.
+To reduce training time, it might be beneficial to contrastive losses \cite{VanDenOord2018,Kipf2020,Mohammadi2020} instead of the reconstructor. However, this did not work as well as the reconstruction loss in the observation space in this project.
 
-\section{Sparse causal models and the problem of consciousness}
-The connection to the problem of consciousness stems comes from two directions. First, this work can be seen as an implementation of the \cite{Bengio2017} hypothesis. Indeed, we are learning the most sparse model in the latent space, along with learning the representations. The paper explicitly defines this as one of the components of the consciousness prior \cite{Bengio2017}.
+\subsection{Sparse causal models and the problem of consciousness}
+The connection to the problem of consciousness stems comes from two directions. First, this work can be seen as an implementation of the \cite{Bengio2017} hypothesis. Indeed, we are learning the most sparse model in the latent space, along with learning the representations. The paper explicitly defines latent feature model simplicity as one of the components of the consciousness prior \cite{Bengio2017}.
 
 
 The fact that our approach works (albeit for simple environments) proves the merit of this hypothesis and shows that it could be used to explain consciousness: humans indeed can be learning abstract representations (at least partially by the virtue of) learning a space in which the dynamics becomes simple. For example, it is beneficial to learn a variable "time", because this single variable allows to predict if the sun rises, if the metro is open, or if a predator is likely to be sleeping.
@@ -1430,23 +1440,27 @@ Our learned representations can be used to ground the agent in natural language.
 
 In this way, we shed (a bit of) light onto the easy problem of consciousness: the abstract concepts can come {\em before} language, in an unsupervised way, and the first words of language are simply mapped to already existing concepts using Hebbian learning (word and the stimulus occur together). Next, this process could be bootstrapped, since presence of words becomes new variables in the causal model, and the process is repeated, with a more powerful model and a more powerful set of words learned. Asking questions like "what is X?" can be seen as performing interventions on the causal graph: we know that asking "what is X" is likely to result in novel data (a learned way to optimize for an objective), and an $X$ is a novel variable which is still largely unused. Therefore, the agent intervenes setting $\mbox{do}(\mbox{ask 'what is X'})$ and samples data from a novel distribution.
 
-While the grounding technique is known for a long time \cite{Hofstadter1994}, my work provides a proof that abstract concepts can be learnt before language from raw pixels, just by optimizing for the inner model simplicity -- a simple and beautiful enough principle to be innate to the brain \cite{Babadi2014}. Other projects like mine are involving more sophisticated (and less simple) priors, such that the action only increments one component, or that the dynamics in the latent space is linear, or that the environment is a $2D$ world.
+While the grounding technique is known for a long time \cite{Hofstadter1994}, my work provides a proof that abstract concepts can be learnt before language from raw pixels, just by optimizing for the inner model simplicity -- a simple and beautiful enough principle to be innate to the brain \cite{Babadi2014}. Other projects are usually involving more sophisticated (and less simple) priors, such that the action only increments one component, or that the dynamics in the latent space is linear, or that the environment is a $2D$ world.
 
-Secondly, I express a hypothesis that a learned representation is crucial when dealing with the Integrated Information Theory \cite{Tononi2016}. Currently, the theory does not seem to specify at which level of abstraction it should be applied -- at the level of atoms, or at the level of molecules? Or, maybe, at the level of individual electrical components of a computer that we examine? Specifically, it is unclear what should be the "nodes", "factors" or "variables" in the model, the dependencies between which we are to examine to compute the $\varphi$. This leads to the value of $\varphi$ potentially being arbitrarily high, if a bijective transformation is applied before the analysis \cite{Doerig2019}.
+Secondly, I express a hypothesis that a learned representation is crucial to the Integrated Information Theory, or any other causal theory of consciousness \cite{Tononi2016}. First, the theory does not seem to specify at which level of abstraction it should be applied -- at the level of atoms, or at the level of molecules? Or, maybe, at the level of individual electrical components of a computer that we examine? Specifically, it is unclear what should be the "nodes", "factors" or "variables" in the model, the dependencies between which we are to examine to compute the $\varphi$. This leads to the value of $\varphi$ potentially being arbitrarily high, if a bijective transformation is applied before the analysis \cite{Doerig2019}.
 
-If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011,Johnson}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in \cite{Doerig2019}, albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two are (somewhat) bijective.
+If we declare that we need to first apply a transformation in which the graph becomes most sparse (which intuitively is connected to the value of $\varphi$: a sparse graph will likely have less edges \cite{Seth2011,Johnson}, or even becomes two independent components instead). Next, we compute $\varphi$. This seems to resolve the issue raised in \cite{Doerig2019}, albeit, in a bit of an ad-hoc fashion. More importantly, this resolves the ambiguity of the level of abstraction the theory should be applied: if we apply a decoder first and optimize for sparsity (or, maybe, low $\varphi$), the raw wave-function can be mapped into the state of molecules -- and the two representations are (somewhat) bijective.
 
-Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole. However, this claim does not seem to be empirically testable, at least now.
+Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, computing how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole.% However, this claim does not seem to be empirically testable, at least now.
 
-\section{Sparse causal models and the AIXI framework}
+\subsection{Sparse causal models and the AIXI framework}
 A quick overview of the AIXI framework is given in \autoref{ch:solomonoff_aixi}. First, we note that while in theory, penalizing for model's complexity is inevitable (see \autoref{subsec:solomonoff}), for practical cases the total model complexity is limited by the hardware, and, therefore, we are free to favor more complex models over simpler ones.
 
-Having the simplicity prior arguably helps the convergence speed. Indeed, having a similar prior and a good inference algorithm approximating Bayesian inference would could that we obtain similar convergence results. Neural networks arguably do not have such a simplicity prior "built-in", as they are likely to learn spurious correlations\cite{ilyas2019adversarial}. Therefore, such a prior should be explicitly added.
+Having the simplicity prior arguably helps the convergence speed.
+It is an interesting direction for future work to potentially prove a bound similar to the Solomonoff's bound, but for computable environments.
+Indeed, we are using the simplicity prior, and our algorithm can be seen as doing approximate Bayesian inference.
+
+"Vanilla" neural networks arguably do not have such a simplicity prior "built-in", as they are likely to learn spurious correlations \cite{ilyas2019adversarial}. Therefore, adding the simplicity prior explicitly (in terms of structural sparsity) could give interesting theoretical results.
 
 It is left for future work to test if using our approach leads to better sample-efficiency of learning dynamics model of RL environments.
-Our framework can be seen as another approximation\cite{Veness2010} to the true uncomputable AIXI framework, in a sense that we are defining a proxy for the model complexity in terms of its structure as $K(M)=\|B\|_0$.
+Our framework can be seen as another approximation \cite{Veness2010} to the true uncomputable AIXI framework, in a sense that we are defining a proxy for the model complexity in terms of its structure as $K(M)=\|B\|_0$.
 
-\section{Other future directions}
+\subsection{Other future directions}
 The prior to have a simple model could make the agent require less data to train: since it expects the underlying dynamics to be simple, it will converge to the true model faster, because a more complex model (that a regular agent is likely to take as a first guess) will be discarded.
 
 Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012,Veerapaneni2019,Didolkar2021,Gomez2006}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
@@ -1457,7 +1471,7 @@ Finally, the method can be applied to challenging environments interesting in th
 \appendix
 \chapter{Optional background: Solomonoff induction and the AIXI framework}
 \label{ch:solomonoff_aixi}
-In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework \cite{Hutter2003,legg2008machine}, which gives the same guarantee for RL. The frameworks described in this section do not provide direct practical results, as they are uncomputable \cite{Hutter2003}. There exist computable approximations\cite{Veness2010}.
+In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework \cite{Hutter2003,legg2008machine}, which gives the same guarantee for RL. The frameworks described in this section do not provide direct practical results, as they are uncomputable \cite{Hutter2003}. There exist computable approximations \cite{Veness2010}.
 
 \section{Solomonoff induction}
 \label{subsec:solomonoff}
@@ -1474,12 +1488,14 @@ Roughly speaking, the algorithm will make approximately $K(\mu)$ mistakes, when 
 
 \section{The AIXI framework}
 \label{subsec:aixi}
-AIXI\cite{Hutter2003} is an extension of Solomonoff induction to the problem of Reinforcement Learning. We set $x_t=(o_t,r_t)$ -- the observation and the reward given by the environment. The action is selected greedily to optimize for the expected reward given the posterior (see Equation 23 in \cite{Hutter2003}):
+AIXI \cite{Hutter2003} is an extension of Solomonoff induction to the problem of Reinforcement Learning. We set $x_t=(o_t,r_t)$ -- the observation and the reward given by the environment. The action is selected greedily to optimize for the expected reward given the posterior (see Equation 23 in \cite{Hutter2003}):
 $$
 a_{t+1}=\arg\max\limits_{a}\mathbb E_{x_{t+1},x_{t+2},...\sim \xi|(x_1,...,x_t)}V_{\geq t}
 $$
 
 Roughly speaking, this equation means that we first select the simplest environments (because the prior $\xi$ penalizes for sequence's complexity), that fit the observed data well. Having such a model, we simulate the future using tree search, and select an action optimizing for the discounted value.
+
+While the AIXI agent has certain optimality guarantees, they are weak \cite{leike2015bad}, due to the hardness of exploration in RL. Approaches \cite{leike2016thompson} exist to deal with this issue.
 % \appendix
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \chapter{How to make a transmogrifier}
