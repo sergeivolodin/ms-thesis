@@ -69,7 +69,7 @@
 \supervisor{Dr. Johanni Brea}
 \adviser{Prof. Wulfram Gerstner}
 %\coadviser{Second Adviser}
-\expert{Carl-Johann Simon-Gabriel}
+\expert{Dr. Adam Gleave}
 
 \dedication{\begin{raggedleft}
         The strongest evidence that we can obtain for the validity of a proposed induction method, is that it yields results that are in accord with intuitive evaluations in many different kinds of situations in which we have strong intuitive ideas.\\
@@ -78,11 +78,12 @@
 }
 
 \acknowledgments{
-I thank my parents and my sister for the support in my studies, and Switzerland and EPFL in particular for making it possible. Thanks to the EPFL administration for processing my reuests ???.
+I thank my parents and my sister for the support in my studies, and Switzerland and EPFL in particular for making it possible. Special thank you to the EPFL administration and the IC section administration for processing my visa in time for me to start my studies.
 
 I would like to also thank Nevan Wichers, Le Nguen Hoang, El-Mahdi El-Mhamdi, Louis Faucon David Krueger, Ivan Vendrov, and Jeremy Nixon for the productive discussions in 2019-2020 on Causality and Machine Learning in general.
 
 I would like to additionally thank Roman Pogodin for introducing me to EPFL and to computational neuroscience. I would like to thank Konrad Seifert, Mattias Berg, Ailin Parsa, Romain Ensminger, Denis Drescher, Michael Pokorny for supporting me.
+I am grateful for the advice and mentoring from Arshavir Ter-Gabrielyan, Konstantin Lopuhin and Vladimir Vanovsky who supported my passion for science.
 
 Special thank you to my supervisor Johanni Brea for guiding and supporting me during the thesis.
 
@@ -109,7 +110,7 @@ RL for state-of-the-art benchmark environments are based on neural networks, whi
 Enforcing safety guarantees is important when deploying RL agents in the real world, and guarantees require interpretability of the agent.
 %The best result that could be obtained are two rollouts from the internal model of the agent, showing that one policy would result in a higher reward than the another policy. These rollouts would be high-dimensional objects that are hard to compare together or reason about.
 %Additionally, feature attribution could be applied to these rollouts, which would show that certain parts of the raw image observations influence the outcome more than others. However, this would require a careful manual analysis of the feature attribution maps for every possible input that the agent can encounter.
-Humans use short explanations that capture only the essential parts.
+Humans use short explanations that capture only the essential parts and often contain few causes to explain an effect.
 %This is possible because the world contains hierarchical structures in which only a few factors are important, and the rest can be ignored.
 In our thesis, we address the problem of making RL agents understandable by humans.
 %Interpretability of the resulting agent is crucial if such an agent is deployed in the real world in mission-critical scenarios, because a black-box neural network could give wrong predictions on unexpected inputs, without even giving an ability to know the reason of the failure. Thus, interpreting Reinforcement Learning agents is an important step towards safely deploying them.
@@ -147,22 +148,22 @@ Reinforcement learning is a general paradigm in Artificial Intelligence (AI) tha
 While RL environments in general can have arbitrary complexity, practically interesting environments usually have a certain low-dimensional structure in them. For example, in the popular CartPole environment, the observation (as image) has 720 000 variables (pixels), while the dynamics of the cart can be explained using only 4 variables with a simple Newtonian update rule. Atari games, while having 100 800 variables in an observation, can be described using only 128 bytes (of the RAM state). The dynamics in the pixel space would be complex, with one pixel at the next time-step potentially depending on all of the pixels on the previous one. However, the dynamics in the latent space is much simpler. The real world has this property as well \cite{Hamming1980}: while a camera can capture many megapixels per second observing a drone, the equations describing the dynamics of the drone only have a few variables, and are much simpler.
 
 
-RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or controversial content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Most capable agents are based on neural networks (NNs), and, therefore, it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability) \cite{Lipton}, because a priori there is no structure in the network: all variables depend on all variables of the input.
+RL agents could (and sometimes already do) solve real-world problems, such as steering the wheel of an autonomous car, controlling a plant, or determining which content to recommend to people on a social network. However, in many applications there exist highly undesirable outcomes, such as the car crashing due to a mistake in controlling it, or showing polarizing or misleading content to people. To prevent such cases, we need to have an understanding of what makes an agent take a certain action, why it "thinks" it is optimal, and why it "thinks" it does not violate any sensitive constraints. Most capable agents are based on neural networks (NNs), and, therefore, it is hard to interpret them. Both the large number of parameters in the network, and many intermediate representations at each layer -- the distinctive features that allow NNs to be so versatile in fitting different kinds of data, lead to problems with interpretability (or explainability) \cite{Lipton}, because a priori there is no structure in the network: all variables depend on all variables of the input.
 
-Even the state-of-the-art approaches that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
+Even the state-of-the-art interpretability approaches \cite{goh2021multimodal,} that look at individual neurons and try to determine their functions (such as a neuron responding to the images of dogs) do not allow to obtain a concise explanation, since, while some neurons are more important than others in predicting a particular outcome, all neurons contribute a non-zero amount to the outcome. Because of this, it becomes impossible to determine in advance what the prediction of a network would be in all of the input scenarios.
 
-In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning (or Abstraction Learning) task \cite{Bengio2007,Learning2014,Deng,Mitchell2020,Scholkopf2021}, with an objective of obtaining representations allowing for good explanations. In addition, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
+In order to make an agent interpretable (be able to answer questions of the form "why an action was taken given a particular observation"), the agent needs to grasp the high-level concepts and objects contained in the environment. This is a Representation Learning (or Abstraction Learning) task \cite{Bengio2007,Learning2014,Deng,Mitchell2020,Scholkopf2021}, with an objective of obtaining representations allowing for good explanations. To begin with, regardless of the task the agent is solving, it has to be able to explain in simple terms the effects of its actions on the environment.
 
-While deep neural networks allow to fit various kinds of data, but lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artificial Intelligence (AI) approaches are interpretable (explainable) but lack the versatility of neural networks: they are not applicable to all the tasks.
+While deep neural networks allow to fit various kinds of data and lack interpretability due to the large number of parameters, in contrast, traditional ("good-old-fashioned" or GOFA) Artificial Intelligence (AI) approaches are interpretable (explainable) and lack the versatility of neural networks: they are not applicable to all the tasks.
 Such GOFA approaches are characterized by discrete symbols that are the basis of a reasoning system, i.e. first-order logic.
 These symbols correspond to real-world concepts and objects, such as the coordinates of a robot on the floor.
-The drawback of such systems is that the mapping from real-world "messy" data (e.g. images from a camera) to discrete symbols (e.g. the coordinates) is hand-designed and thus requires effort.
+The drawback of such systems is that the mapping from real-world "messy" data (e.g. images from a camera) to discrete symbols (e.g. the coordinates) is hand-designed and thus requires effort to develop them.
 Unifying these two approaches yields the best of both worlds, with the versatility of deep AI in being able to fit almost any dataset and the explainability of traditional AI.
 To do so, we learn the representation of observations using a deep network. These representations are used by a system involving discrete components to make explainable predictions about the environment.
 
 The quality of explanations given by such an agent would depend on the learned representation. Specifically, a representation of the observation in which every variable depends on every variable would be practically useless: an action potentially changes all of the variables, and, therefore, an explanation of action's effect would require to list all of them. Since the length of an explanation is crucial, the effect of an action should be describable by a change in only a few variables \cite{Schmidhuber2009,Chari2020,Gomez2006}.
 
-The current explainable RL agents can be classified into three following categories. First, many projects learn sparse representations in terms of the feature vector sparsity: the predicted learned features associated with an observation are sparse at each time-step as a vector. Such a condition, however, is neither necessary nor sufficient for the {\em explanations} of the dynamics to be simple. Indeed, any sparse coding technique will yield sparse feature vectors (for example, by assigning the first $k$ most sparse vectors to all the $k$ states of the MDP in case of a finite MDP), but a feature at the next time-step would depend on many features at the previous time-step. Indeed, without any assumption on the way the sparse features are obtained, two neighboring states can have drastically different representations. Thus, an action potentially changes all of the variables. This demonstrates that sparse feature vectors are not sufficient to have simple explanations. On the other hand, it is possible to have simple explanations without sparse feature vectors. Indeed, the state of a CartPole environment has all of the components being non-0 most of the time, and, yet, these components comply with a simple explainable kinematics equation. Thus, sparse feature vectors are not necessary for simple explanations.
+The current explainable RL agents can be classified into three following categories\footnote{See \autoref{ch:related_work} for detailed references}. First, many projects learn sparse representations in terms of the feature vector sparsity: the predicted learned features associated with an observation are sparse at each time-step as a vector. Such a condition, however, is neither necessary nor sufficient for the {\em explanations} of the dynamics to be simple. Indeed, any sparse coding technique will yield sparse feature vectors (for example, by assigning the first $k$ most sparse vectors to all the $k$ states of the MDP in case of a finite MDP), but a feature at the next time-step would depend on many features at the previous time-step. Indeed, without any assumption on the way the sparse features are obtained, two neighboring states can have drastically different representations. Thus, an action potentially changes all of the variables. This demonstrates that sparse feature vectors are not sufficient to have simple explanations. On the other hand, it is possible to have simple explanations without sparse feature vectors. Indeed, the state of a CartPole environment has all of the components being non-0 most of the time, and, yet, these components comply with a simple explainable kinematics equation. Thus, sparse feature vectors are not necessary for simple explanations.
 
 The second approach is to apply feature attribution to the convolutional networks representing policies, and the analysis of circuits of the network is performed. This approach gives a) the parts of the image most relevant to predict the action and b) the visualization of what each neuron in the network is activated with. While such an approach is extremely robust to the type of the underlying agent (the analysis is performed after the training and does not require any changes in the architecture), the drawback is that it should be performed for every input image: we do not know how a particular new image would affect the outputs, since each output action still depends on all of the pixels.
 
@@ -170,7 +171,7 @@ Finally, a line of work is investigating {\em causal} explanations of the agents
 
 We would like to automatically uncover the simple structure in the underlying complex high-dimensional observations that the environment dynamics generates -- uncover the succinct "laws of physics" \cite{Bakhtin2019} that the environment operates with.
 This would make the actions of an agent explainable.
-It makes the actions of the agent explainable in terms of the "laws of physics" that we learn. In terms of Model-Based RL \cite{DeBruin2018,Corneil2018,Kaiser2019} (an RL agent equipped with a model of the environment), we would like to learn a simple model of the environment.
+It makes the actions of the agent explainable in terms of the "laws of physics" that we learn. In terms of Model-Based RL \cite{DeBruin2018,Corneil2018,Kaiser2019} (an RL agent equipped with a model of the environment), we would like to learn a {\em simple} model of the environment.
 Specifically, we would like each variable in the model to depend on the fewest possible variables at the previous time-steps. This would make actions explainable in terms of the variables an action changes, and the explanation would be short. The model is the "good-old-fashioned" component, since it includes discrete elements: the variable's causes consist of a set of elements, rather than an array of numbers of weights for all possible causes.
 Mathematically, we require sparsity of the model's graph of dependencies -- the predicted output for a variable depends only on a few variables at the previous time-step. If represented as a graph (with cause-variables at the current time-step as parents and effect-variables at the next time-step as children), this graph needs to have fewest possible edges.
 
@@ -188,19 +189,18 @@ Our work can be seen as an experimental confirmation of the Consciousness Prior 
 If an environment allows for a complete separation of some parts of its dynamics (for example, termination of the episode only depends on the health of the player, and another variable, such as the number of ammunition does not affect the health), out approach would capture it, because a graph with two components has less edges than a connected graph. This way, we {\em disentangle} the representation, as it consists of (recurrent) {\em independent} mechanisms.
 Such a model is very useful for explanations, because an effect of each action can be described in terms of changes in only a few variables (out of many). For example, for Cartpole with images as observations, our approach is expected to output the 4 features representing cart's and pole's position and velocity.
 
-The main challenge when implementing our approach is combining all the requirements (sparsity of the causal model, learning the decoder, and the non-degeneracy of the decoder) into a single training procedure. Specifically, we propose and compare several methods (simple aggregation of losses with coefficients, primal-dual method for optimization under constraints, and an adaptive scheme for choosing the loss coefficients) and employ several useful tricks (such as using a {\em relative} Mean Squared Error (MSE) loss to have an interpretable magnitude of the loss, and adding the sampled binary mask of selected cause features to the model that predicts the effects), and use different methods to enforce sparsity (from $l_1$-regularization to discrete variables with various methods to compute the gradients). We present an ablation study to show the effects of various tricks and techniques used.
+The main challenge when implementing our approach is combining all the requirements (sparsity of the causal model, learning the decoder, and the non-degeneracy of the decoder) into a single training procedure. Specifically, we compare several methods (simple aggregation of losses with coefficients, primal-dual method for optimization under constraints, and an adaptive scheme for choosing the loss coefficients) and employ several useful tricks (such as using a {\em relative} Mean Squared Error (MSE) loss to have an interpretable magnitude of the loss, and adding the sampled binary mask of selected cause features to the model that predicts the effects), and use different methods to enforce sparsity (from $l_1$-regularization to discrete variables with various methods to compute the gradients). We present an ablation study to show the effects of various tricks and techniques used.
 
-We design a simple toy environment to illustrate learning of sparse causal models from high-dimensional data, and show that our approach successfully obtains the minimal causal graph on it. Additionally, we illustrate the same positive behavior on a grid-world environment. Surprisingly, the method find a simpler (but correct) graph for the toy environment than the authors anticipated.
+We design a simple toy environment to illustrate learning of sparse causal models from high-dimensional data, and show that our approach successfully obtains the minimal causal graph on it. Surprisingly, the method finds a simpler (but correct) graph for the toy environment than the authors anticipated.
+Additionally, we illustrate the same positive behavior on a grid-world environment.
 
 {\bf Contribution.} This thesis presents, up to our knowledge, the first successful result on learning a sparse causal model jointly with the representation on a challenging high-dimensional problem with our approach \sysname. While the parts of the "recipie" used, such as discrete variables to learn a sparse causal graph can be found in existing literature, combining them into a working system that learns the representation and the sparse causal graph, along with the required modifications and the techniques, is a novel main result. The main difference with respect to existing methods of learning abstractions in RL is that our only prior is the sparsity (simplicity) of the learned model in the latent space. We do not add any additional priors or assumptions \cite{Francois-Lavet2018,Ying2020} on the feature space, on the environment, or on the agent. We briefly mention the implications of our work on the Integrated Information Theory \cite{Tononi2016} of consciousness.
 
-The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. First, a learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} \cite{Lahlou2019,Hui2020} the various aspects of the observations with natural-language sentences.
+The result of this work can be used to improve significantly the explainability of Reinforcement Learning agents. A learned causal graph opens the possibility to drastically reduce the amount of data required to {\em ground} \cite{Lahlou2019,Hui2020} the various aspects of the observations with natural-language sentences.
 In this way, a dataset containing only two sentences "cart going left" and "cart going right" with two data points will likely result in a mapping of the sentences to the learned velocity variable. In contrast, if we ground raw images this way, the model is likely to overfit to the particular details that the image has (spurious correlations), and will not depend on the true cause.
 Sparse causal graph-based or natural language-based explanations \cite{Madumal2019,Ehsan2018,Abramson2020} of agent's actions would allow for faster certification of agents for mission-critical applications.
+
 Secondly, since the learned model is the simplest one, it is likely to be less prone to overfitting, and, therefore, more robust to distributional shift \cite{VanSteenkiste2020,Gomez2006,Priol2021}. In this way, it would be easier to adjust the agent to a novel environment either without modifications (because the model relies more on a discrete set of concepts, than on the whole vector of features), or with re-training the decoder only (for example, if the shape of an obstacle has changed, only the decoder needs to be updated). For the latter part, the training should take less time, because the bulk of the problem is already solved -- the model knows how to avoid obstacles.
-Third, out prior to have the simplest model could make the agent require less data to train: since it expects the underlying dynamics to be simple, it will converge to the true model faster, because a more complex model (that a regular agent is likely to take as a first guess) will be discarded.
-Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012,Veerapaneni2019,Didolkar2021,Gomez2006}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
-Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (aprori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
 
 {\bf Source code.} The source code for the project is available at
 \begin{center}
@@ -215,7 +215,7 @@ Finally, the method can be applied to challenging environments interesting in th
 In order to proceed, we need to introduce several important concepts: model-based reinforcement learning, causal models, methods for enforcing sparsity and methods for computing gradients for discrete variables.
 
 We use $\mathbb R$ to denote real numbers, $[n]$ to denote the first $n$ natural numbers ($[n]=\{1, 2, ..., n\}\subset \mathbb N$). For a vector with $n$ dimensions $x=(x_1,...,x_n)\in \mathbb R^n$, we use $\|x\|_p=\left(\sum_{i=1}^n|x_i|^p\right)^{1/p}$ the $p$-norm of $x$. The specific cases that we use are the $1$-norm $\|x\|_1=\sum\limits_{i=1}^n|x_i|$, and the $0$-norm $\|x\|_0=\sum\limits_{i=1}^n\mathds 1_{x_i\neq 0}$ -- number of non-zero components in $x$ ($\mathds 1_z=1$ if $z$ is true, and $0$ otherwise).
-Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$.
+Given a distribution $X$, we write $x\sim X$ meaning that the random variable $x$ has the distribution $X$ ($x$ "sampled from" $X$). We write $\mathbb E_{x\sim X} x$ meaning the expected value of $x$ when sampled from a distribution $X$. For two vectors $x,y\in\mathbb R^{n}$, we define the element-wise product as $x\odot y=(x_1y_1,...,x_ny_n)$. For $p\in[0,1]$, $Be(p)$ is the Bernoulli distribution: if $b\sim Be(p)$, $P(b=1)=p$ and $P(b=0)=1-p$. We write the probability density function of a continuous random variable $x\sim X$ as $f_X(x)$.
 
 \section{Reinforcement Learning}
 \label{sec:rl}
@@ -235,11 +235,11 @@ For each time-step, the following holds: $(o_t, r_t)\sim \mu(a_{t-1}, h_{t-1})$ 
 
 We say that $h_T\sim (\mu\leftrightarrow\pi)$ if the history $h_T$ was obtained from an interaction between the environment $\mu$ and the agent $\pi$.
 
-The {\em value} is defined as the discounted sum of rewards: $V(h_T)=\sum\limits_{t=1}^T\gamma^t r_t$, where $\gamma\in[0, 1]$ is the {\em discount factor}. The goal of the agent is to find such $\pi$ that $\mathbb E_{h_T\sim (\mu\leftrightarrow \pi)} V$ is maximized.
+The {\em value} is defined as the discounted sum of rewards: $V(h_T)=\sum\limits_{t=1}^T\gamma^t r_t$, where $\gamma\in(0, 1]$ is the {\em discount factor}. The goal of the agent is to find such $\pi$ that $\mathbb E_{h_T\sim (\mu\leftrightarrow \pi)} V$ is maximized.
 
-In our project, $A$ is discrete {\em discrete action}, such as $A=\{\mbox{up},\,\mbox{down},\,\mbox{left},\,\mbox{right}\}$\footnote{the model supports real-valued actions, they would be treated the same way as real-valued features without any difference}, and $O=\mathbb R^o$, where $o$ is the dimension of each observation. For example, $o=210\times 160\times 3$ for 210 rows, 160 columns and 3 RGB channels for an Atari observation, or $o=128$ for the $128$ RAM components in the RAM version. The reward space $R$ is bounded: $R=[r_{\min}, r_{\max}]$.
+In our project, $A$ is a finite set (the case of {\em discrete actions}). For example, it could be $A=\{\mbox{up},\,\mbox{down},\,\mbox{left},\,\mbox{right}\}$\footnote{Our framework should support real-valued actions, they would be treated the same way as real-valued features without any difference}. We assume that $O=\mathbb R^o$, where $o$ is the dimension of each observation. For example, $o=210\times 160\times 3$ for 210 rows, 160 columns and 3 RGB channels for an Atari observation, or $o=128$ for the $128$ RAM components in the RAM version. The reward space $R$ is bounded: $R=[r_{\min}, r_{\max}]\subset \mathbb R$.
 
-Additionally, we consider a {\em Markov} class of environments: one where next time-step only depends on the previous time-step in the history, and not on the ones before it\footnote{A typical workaround to make some non-Markov environments to comply with this property is to stack a few observations together}. For this class of environments,
+Additionally, we consider the {\em Markov} class of environments: the next time-step only depends on the previous time-step in the history, and not on the ones before it\footnote{A typical workaround to make some non-Markov environments to comply with this property is to stack a few observations together}. For this class of environments,
 $$
 (o_t, r_t)\sim \mu(a_t, o_{t-1}),\,a_t\sim\pi(o_t)
 $$
@@ -282,15 +282,15 @@ $\|\hat{R}_t-R_t\|\to\min$ where $\hat{R}_t=R_{value}(f_t)$.
 
 \section{Causal modeling and deep causal modeling}
 \label{sec:causal}
-In a nutshell, {\em Structural Causal Models} \cite{Runge2019,Wong2020,Guo2020} are regular models fitting data from some distribution, and in which we explicitly care about which variables a given variable depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
+{\em Structural Causal Models} \cite{Runge2019,Wong2020,Guo2020} are regular models fitting data from some distribution, in which we explicitly define which variables a given variable could depends on. For example, if we have a dataset with a time series of the number of cancer patients, and one with a time series of the number of smokers, we could just fit an autoregressive model to predict both time series using both values. However, we could explicitly limit the effect of one time series on the other in our model, by simply not including it as the input to the model. In this way, we can discuss the differences in the losses when regressing the number of cancer patients given the time series with the smokers data: if this difference is not 0, it could be that this data suggests that smoking causes cancer.
 
 More formally, suppose we have a set of variables $f_i$, $i\in[f]=(1, ..., f)$. These variables change with time and form time series $f_i^{t=1},f_i^{t=2},...,f_i^{t=\tau},...$ for $i\in[f]$\footnote{We write time indices below for the whole vector $f_{\tau}=(f_1^{t=\tau},...,f_t^{t=\tau})$, and we write them above, if we additionally specify the index of the feature $f_i^{t=\tau}$}.
 
-A {\em deterministic structural causal model (SCM) with 1-step dependencies} is a set of functions $F_i$, $i\in[f]$, which output the value of the feature $i$ at the current time-step given a subset of features $PA_i$ at the previous time-step: $f_i^{t=\tau}=F_i(f_j^{t=\tau-1},j\in PA_i)$. In the following, we write $F_i(PA_i)\equiv F_i(f_j^{t=\tau-1},j\in PA_i)$. For example, if $PA_i=[f]$ for all $i\in[f]$, each feature $i$ depends on all features $j$ at the previous time-step. This is the most general case -- as all SCMs will fall into this category. However, we would like to find structure in the data: some features do not require {\em all} the features to predict them. For example, in a game the coordinate of the player is unlikely to depend on its ammunition. There could be a correlation (for example, having collected some inventory allows access to another room), but the ammunition is not required to predict the position, as we could just use the previous position, the action taken, and whether or not there are any obstacles around, instead.
+A {\em deterministic structural causal model (SCM) with 1-step dependencies} is a set of functions $F_i$, $i\in[f]$, which output the value of the feature $i$ at the current time-step given a subset of features $PA_i$ at the previous time-step: $f_i^{t=\tau}=F_i(f_j^{t=\tau-1},j\in PA_i)$. In the following, we write $F_i(PA_i)\equiv F_i(f_j^{t=\tau-1},j\in PA_i)$. For example, if $PA_i=[f]$ for all $i\in[f]$, each feature $i$ depends on all features $j$ at the previous time-step. This is the most general case -- as all SCMs will fall into this category. However, we would like to find structure in the data: some features do not require {\em all} the features to predict them. For example, in a game the coordinate of the player is unlikely to depend on its ammunition. There could be a correlation (for example, having collected some inventory allows access to another room), but the ammunition is not required to predict the position, as we could just use the previous position, the action taken, and whether or not there are any obstacles around instead.
 
 Granger causality \cite{Barnett2015} is defined in the way as in the example above: a feature $j$ can be excluded from $PA_i$ if the best function (measured by the Mean Squared Error loss) that predicts $f_i$ from $PA_i\setminus\{j\}$ has the same loss as the best function that predicts $f_i$ from $PA_i$.
 
-More generally, we set $\delta(PA_i,j)=\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i\setminus\{j\})\|-\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i)\|$. This is the difference in the losses without and with feature $j$ when predicting the feature $i$, given the current set $PA_i$.
+More generally, we set $\delta(PA_i,j)=\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i\setminus\{j\})\|-\inf_{F_i}\mathbb E_t\|f_i-F_i(PA_i)\|$. This is the difference in the losses without and with a feature $j$ when predicting the feature $i$, given the current set $PA_i$.
 Given a threshold $\varepsilon>0$, if $\delta(PA_i,j)<\varepsilon$, we could exclude $j$ from $PA_i$, and this would only worsen the prediction quality by $\varepsilon$.
 
 \subsection{Neural Granger Causality}
@@ -303,7 +303,7 @@ Given a threshold $\varepsilon>0$, if $\delta(PA_i,j)<\varepsilon$, we could exc
 \end{figure}
 
 
-In order to find $F_i$ in practice, we model them with neural networks \cite{Tank2018,Kalainathan2018, Ng2019} with input size $f$ (including all features). $F_i\colon \mathbb R^{f}\to\mathbb R$. In order to account for $PA_i$, we pre-multiply the input to each function $F_i$ by a binary mask $B_i\in\{0,1\}^f$ (see \autoref{fig:featuremaskfeature}):
+In order to find $F_i$ in practice, we model them with neural networks \cite{Tank2018,Kalainathan2018, Ng2019} with input size $f$. Each function is $F_i\colon \mathbb R^{f}\to\mathbb R$. In order to account for the sparsity of the inputs $PA_i$, we pre-multiply the input to each function $F_i$ by a binary mask $B_i\in\{0,1\}^f$ (see \autoref{fig:featuremaskfeature}):
 $$
 \hat{f}_i^{t+1}=F_i(f^t\odot B_i)
 $$
@@ -329,7 +329,7 @@ One (very inefficient) method to solve this problem is to a) go over all possibl
 
 We can use gradient descent on $B$ if we relax the problem. There are several methods for it.
 \begin{enumerate}
-    \item The obvious solution is to allow $B_i\in[0,1]$ instead of $B_i\in\{0,1\}$ and regularize the model with $\|B\|_1$ \cite{Tank2017}. This would enforce sparsity on $B$. However, since we are using a multi-layer network, this solution would not work: in practice, the coefficients in $B$ are never exactly $0$, and the subsequent layers can simply multiply the incoming value by a large constant. Therefore, while $B$ is sparse, the network could actually still be using all the features.
+    \item The obvious solution is to allow $B_i\in[0,1]$ instead of $B_i\in\{0,1\}$ and regularize the model with $\|B\|_1$ \cite{Tank2017}. This would enforce sparsity on $B$. However, since we are using a multi-layer network, this solution would not work: in practice, the coefficients in $B$ are never exactly $0$, and the subsequent layers can multiply the incoming value by a large constant. Therefore, while $B$ is sparse, the network could actually still be using all of the features.
     \item In the rest of the methods \cite{Ng2019,Abid2019,Lamb2020,Kalainathan,Yang2020}, we sample (element-wise) $B\sim Be(P)$ from the Bernoulli distribution, where $P\in[0,1]^x$ is a matrix of probabilities. The computation of the gradient of the loss with respect to the parameters of the distribution is described in the next section
 \end{enumerate}
 
@@ -339,7 +339,7 @@ This section describes standard methods to compute gradients with respect to a b
 
 We sample $B_i\sim Be(P_i(\theta_i))$, where $\theta_i$ parameterizes the probability $P_i$, and, therefore, the distribution $Be(P_i(\theta_i))$.
 
-We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods generally follows \cite{Bengio2013, Weib2011,Maddison2017} unless stated otherwise.
+We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$ for one of the elements $P_i$ The list of methods follows \cite{Bengio2013, Weib2011,Maddison2017}.% unless stated otherwise.
 
 \begin{figure}[h]
     \centering
@@ -359,7 +359,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     $$
     The second multiplier on the right-hand side in the equation above is the difference between the expected losses with the variable $B_i$ on and off, while the expectation is taken with respect to all the other binary variables.
 
-    Now, if we have a batch with sampled masks $B_i$, in which the variable $B_i$ takes the value of $1$ $N_i^{+}$ times, and the value of $0$ $N_i^-$ times, we can set up a sample mean estimate:
+    Now, if we have a batch with sampled masks $B_i$, in which the variable $B_i$ takes the value of "$1$" $N_i^{+}$ times, and the value of "$0$" $N_i^-$ times, we can set up a sample mean estimate:
 
     $$
     L'_{\theta_i}\approx \frac{\partial p_i}{\partial\theta_i}\cdot\left[\frac{1}{N_i^{+}}\sum\limits_{t=1,B_i^t=1}^TL(b_1,...,b_x)-\frac{1}{N_i^{-}}\sum\limits_{t=1,B_i^t=0}^TL(b_1,...,b_x)\right]
@@ -367,7 +367,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
 
     Note that we have to have at least one sample with $B_i^t=0$ and one with $B_i^t=1$ for this expression to be valid. Otherwise, the gradient is undefined, and the update is not performed for this component of the gradient.
 
-    The drawback of such an approach is high variance, pertinent to REINFORCE estimators. The advantage is its simplicity of tuning (it has no hyperparameters), and the fact that the gradient estimate is unbiased (with increases in batch sizes $T$, the gradient tends to its true value by the Central Limit Theorem).\footnote{This is called a REINFORCE gradient because it uses the same technique -- log-likelihood trick, as the REINFORCE algorithm for Reinforcement Learning. Another way to obtain the equation is to consider the log-likelihood trick: $\partial/\partial\theta_i\mathbb E_{B_i}\mathcal L=\partial/\partial\theta_i\int p(B_i)\mathcal L(B_i)dB_i=\int\partial p(B_i)/\partial\theta_iL(B_i)dB_i=\int\partial \log p(B_i)/\partial \theta_i p(B_i)L(B_i)dB_i=\mathbb E_{B_i}\partial \log p(B_i)/\partial\theta_i L(B_i)$. For the Bernoulli distribution, $\partial \log p(B_i)/\partial \theta_i=\frac{\partial p_i}{\partial\theta_i}\frac{1}{p_i}$ if $B_i=1$ or $-\frac{\partial p_i}{\partial\theta_i}\frac{1}{1-p_i}$ otherwise, and the denominators cancel out with the probability mass function.}
+    The drawback of such an approach is high variance, pertinent to REINFORCE estimators. The advantage is its simplicity of tuning (it has no hyperparameters), and the fact that the gradient estimate is unbiased (with increases in batch sizes $T$, the gradient has a limit of its true value, by the Central Limit Theorem).\footnote{This is called a REINFORCE gradient because it uses the same technique -- log-likelihood trick, as the REINFORCE algorithm for Reinforcement Learning. Indeed, consider the log-likelihood trick: $\partial/\partial\theta_i\mathbb E_{B_i}\mathcal L=\partial/\partial\theta_i\int p(B_i)\mathcal L(B_i)dB_i=\int\partial p(B_i)/\partial\theta_iL(B_i)dB_i=\int\partial \log p(B_i)/\partial \theta_i p(B_i)L(B_i)dB_i=\mathbb E_{B_i}\partial \log p(B_i)/\partial\theta_i L(B_i)$. For the Bernoulli distribution, $\partial \log p(B_i)/\partial \theta_i=\frac{\partial p_i}{\partial\theta_i}\frac{1}{p_i}$ if $B_i=1$ or $-\frac{\partial p_i}{\partial\theta_i}\frac{1}{1-p_i}$ otherwise, and the denominators cancel out with the probability mass function.}
 
     In this approach, $\theta_i\equiv p_i$. In order to keep the values of $p_i$ in $[0,1]$, we simply project to $[0,1]$ after each gradient step: if $p'_i>1$, we set $p_i=1$, and the same for $p'_i<0$.
 
@@ -379,7 +379,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     Here, we simply compute the gradient with respect to the variable $B_i$, as if it were a real-valued one.
     \item Gumbel-Softmax \cite{Jang}. In the forward pass (when computing the value of the loss), we sample from the Bernoulli distribution. In the Backward pass, we compute the gradient as follows. Consider the probabilities $p_i$ and $q_i=1-p_i$ corresponding to sampling either $1$ or $0$ (two categories).
 
-    We define $l_p=\log p_i+g_p)$ and $l_q=\log q_i+g_q$. Here, $g_p$ and $g_q$ are independent samples from the {\em Gumbel} distribution: a continuous distribution with a density function $f_{g_p}(x)=\exp(-(x+\exp(-x)))$. It has the following property: $\arg\max [l_p, l_q]\overset{d}{=}Be(p)$: the distributions are equal.
+    We define $l_p=\log p_i+g_p$ and $l_q=\log q_i+g_q$. Here, $g_p$ and $g_q$ are independent samples from the {\em Gumbel} distribution: a continuous distribution with a density function $f_{g_p}(x)=\exp(-(x+\exp(-x)))$. It has the following property: $\arg\max [l_p, l_q]\overset{d}{=}Be(p)$: the distributions are equal.
 
     Now, we replace the $\arg\max$ with $\mbox{soft}\arg\max$:
 
@@ -387,7 +387,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     B_i:=z_p=\frac{\exp(l_p/\tau)}{\exp(l_p/\tau)+\exp(l_q/\tau)}
     $$
 
-    When $\tau\to 0$, $z_p\to Be(p_i)$ ($\mbox{soft}\arg\max$ becomes $\arg\max$). If $\tau\to\infty$, $z_p\to1/2$.
+    When $\tau\to 0$, $z_p\overset{d}{\to} Be(p_i)$ ($\mbox{soft}\arg\max$ becomes $\arg\max$). If $\tau\to\infty$, $z_p\to1/2$.
 
     For $\tau\in(0,\infty)$, We set the (biased) gradient to be:
 
@@ -398,7 +398,7 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
     The advantage is that the gradient is defined even for a single sample. Compared to the previous approach, there is no additional noise due to the fact that a sample estimate is used.
 
     The Figure \ref{fig:gumbel_gradient} shows the expected gradient of the estimator \cite{andriyash2018improved} with respect to the probability.
-    The asymptotes at $p\to 0$ and $p\to 1$ mean that the gradient becomes bigger and bigger, as the entropy of the distribution decreases. Therefore, the probabilities never reach these terminal values, as the noise "pushes" them away from these values.
+    The asymptotes at $p\to 0$ and $p\to 1$ mean that the gradient becomes bigger, as the entropy of the distribution decreases. Therefore, the probabilities never reach these terminal values, as the noise "pushes" them away from these values.
 
     In our project, it is important that the sampling probabilities actually approach the value of $p=1$ (see \autoref{subsec:proba_ranges}). Therefore, we would need to modify Gumbel-Softmax with an additional thresholding mechanism to update the model parameters.
 
@@ -435,12 +435,13 @@ We want to compute a gradient of $\frac{\partial \mathcal L}{\partial \theta_i}$
  %   \item Therefore, we propose an altered version -- we compute the trick with probabilities (not logits), project them to $[0,1]$, and, in case if $p<\varepsilon$ or $1-p<\varepsilon$, we output $1$ as the gradient (the limit value), to avoid numerical instabilities.\footnote{Usually, variables are only learned once -- if the gradient is positive at the beginning, the variable is likely to be used -- the data distribution is stationary. However, our setup has a learned decoder, which makes the distribution non-stationary. Therefore, a low value of a logit for a disabled switch variable will take a long time to update using Gradient Descent, because of the issue above. In addition, usually it is fine that the value of a variable is not fully $1$ or $0$ during training. However, in our setup, we require to know the value of the loss and whether it satisfies constraints. One item in a batch with the wrong variable turned off can increase the batch average significantly and act as a false positive in terms of constraint satisfaction.}
 
 
-    \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $B_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
+%    \item Straight-through Gumbel-Softmax. In this method, we sample from the true Bernoulli distribution on the forward pass, and use the Gumbel-Softmax technique only to compute the gradient. The advantage is that the model never "sees" intermediate values $B_i\in(0,1)$ during the forward pass -- features are truly either on or off. We require this, because a variable partially turned off does not prevent the model from using it -- it could just learn to increase the weights at the subsequent layer.
 %    \item Custom gradient from LCN \cite{bellec2018long} [compare with no-logits-Gumbel]
 \end{enumerate}
 
 In our setup, we use REINFORCE implementation as the simplest one.%, as well as the straight-through no-logits version of Gumbel-Softmax. We compare it to the LCN version in terms of convergence speed {\em for our problem} in the ablation study.
-The Gumbel-Softmax trick would result in duplicated variables, as the probabilities never reach $p=1$, see \autoref{subsec:proba_ranges}.
+
+The Gumbel-Softmax trick (without modifications) would result in duplicated variables, as the probabilities never reach $p=1$, see \autoref{subsec:proba_ranges}.
 
 
 %%%%%%%%%%%%%%%%
@@ -450,12 +451,12 @@ The Gumbel-Softmax trick would result in duplicated variables, as the probabilit
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.99\linewidth]{diagrams/step_spaces}
-    \caption{Step representations used in the project. At the bottom, the environment's Game Engine (GE) generates the next state $s_{t+1}$ given the previous state $s_t$ and the action $a_t$. Next, the states are encoded into high-dimensional observations $o_t=E(s_t)$. The true state dynamics $s_t$, as well as the encoder $E$ are unknown. The proposed methods finds a feature space $f_t=D(o_t)$ by applying the decoder $D$. The dynamics in the space of features is modeled by the function $M_f$. On the right, the parts of the dynamics model are shown for the MsPacman\cite{brockman2016openai} game.}
+    \caption{Step representations used in the project. At the bottom, the environment's Game Engine (GE) generates the next state $s_{t+1}$ given the previous state $s_t$ and the action $a_t$. Next, the states are encoded into high-dimensional observations $o_t=E(s_t)$. The true state dynamics $s_t$, as well as the encoder $E$ are unknown. The proposed methods finds a feature space $f_t=D(o_t)$ by applying the decoder $D$, in which the dynamics becomes simple. The dynamics in the space of features is modeled by the function $M_f$. On the right, the parts of the dynamics model are shown for the MsPacman\cite{brockman2016openai} game.}
     \label{fig:step_spaces}
 \end{figure}
 
 
-We have an agent $\pi$ interacting with the environment $\mu$. We start from the model-based Reinforcement learning setup with a decoder and a reconstructor. We would like to obtain the feature space in which the model $M_f$ becomes most simple in terms of a metric $K$. This is the Bayesian approach: with the sparsity prior on the model, we would like to find the posterior distribution over models given the data from the environment.
+We have an agent $\pi$ interacting with the environment $\mu$. We start from the model-based Reinforcement learning setup with a decoder and a reconstructor. We would like to obtain the feature space in which the model $M_f$ becomes most simple in terms of a metric $K$. % This is the Bayesian approach: with the sparsity prior on the model, we would like to find the posterior distribution over models given the data from the environment.
 
 We consider a model of the environment $\hat{f}_{t+1}=M_f(f_t,a_t)$ in the sense of \autoref{sec:mbrl}. Additionally, we would like some components of $f_t$ and $a_t$ to be ignored when predicting some component of the whole feature vector $f_{i,t+1}$. We view the model $M_f=[M_f^1,...,M_f^f]$ (splitted into scalar functions predicting each feature) as a causal model in the sense of \autoref{sec:causal}. The set of variables of this causal model contains all features, all actions, and additionally the variable $r$ for the reward and the variable $d$ for the "done" (see \autoref{sec:rl} for definitions):
 $$
@@ -483,7 +484,7 @@ The \autoref{fig:example_rl_scm} shows an example SCM.
 \begin{figure}
     \centering
     \includegraphics[width=0.3\linewidth]{diagrams/example_rl_scm}
-    \caption{An example of a Structural Causal Model we are looking for. Here, the number of features $f=2$ and the number of actions $a=2$. The equations can be written as $\hat{f}^1_{t+1}=F_{f_1}(f^1_t,a^1_t)$ (next time-step $f_1$ depends on itself at the previous time-step, and on whether the action $a_1$ was taken), $\hat{f}^2_{t+1}=F_{f_2}(a_t^1,a_t^2)$, $\hat{r}_{t+1}=F_r(f_t^1)$, $\hat{d}_{t+1}=F_d(f^2_t)$. The masks corresponding to this graph equal $B_{f_1}=(1,0,1,0)$ (in order $f_1,f_2,a_1,a_2$), $B_{f_2}=(0,0,1,1)$, $B_r=(1,0,0,0)$, and $B_d=(0,1,0,0)$}
+    \caption{An example of a Structural Causal Model we are looking for. Here, the number of features $f=2$ and the number of actions $a=2$. The equations can be written as $\hat{f}^1_{t+1}=F_{f_1}(f^1_t,a^1_t)$ (next time-step $f_1$ depends on itself at the previous time-step, and on whether the action $a_1$ was taken), $\hat{f}^2_{t+1}=F_{f_2}(a_t^1,a_t^2)$, $\hat{r}_{t+1}=F_r(f_t^1)$, $\hat{d}_{t+1}=F_d(f^2_t)$. The masks corresponding to this graph equal $B_{f_1}=(1,0,1,0)$ (in order of $f_1,f_2,a_1,a_2$), $B_{f_2}=(0,0,1,1)$, $B_r=(1,0,0,0)$, and $B_d=(0,1,0,0)$}
     \label{fig:example_rl_scm}
 \end{figure}
 
@@ -514,8 +515,8 @@ In addition, we must clarify the following point. In what follows, we will induc
 
 In contrast, most known interpretable models (natural language inter-sentence dependencies uncovered with attention, causal models used for medical data, physics equations only capturing the neighbours of a particle to describe its dynamic, sparse linear regression) only have few components: they are sparse. In what follows, we will show that some sparse models are not interpretable, and give methods to overcome that.
 
-\subsection{Sparse fan-in models sometimes are sufficient for interpretability, and usually necessary}
-We set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask:
+\subsection{Sparse fan-in models sometimes are sufficient for interpretability, and usually are necessary}
+In general, simplicity of a model can be described by Kolmogorov complexity (see \autoref{ch:solomonoff_aixi}). Since this quantity is uncomputable, we set the proxy for the Kolmogorov complexity for our class of models as the total number of non-zero components in the mask, or the number of edges in the Structural Causal Model:
 $$
 \tilde{K}(B)=\sum\limits_{x\in X_{in}}\|B_x\|_0
 $$
@@ -735,7 +736,7 @@ Here, $\sigma[y]$ is defined as standard deviation of $y$ in case if it is non-z
     Suppose that $y\sim N(0, \sigma^2)$ (normal distribution), and $\hat{y}=0$ -- a constant. In this case, $\sigma[y]=\sigma$ and $\rho(y, \hat{y})= 1/\sigma^2 \mathbb E_{y\sim N(0, \sigma^2)}(y-0)^2=\sigma^2/\sigma^2=1$.
 \end{example}
 
-\subsection{Degenerate decoder}
+\subsection{Non-degenerate decoder}
 The decoder needs to be invertible (or, at least, "partially" invertible). Note that, technically, it is possible for the decoder to always output $0$ for all observations. In this case, there exist a simple constant model that "predicts" the next state perfectly (if prediction for $d$ and $r$ is disabled). However, such a model is useless, as it does not describe any aspect of the dynamics. One way to solve this issue is to introduce a reconstructor predicting observations from features. See \autoref{sec:mbrl} for further discussion.
 
 The reconstruction loss is defined in terms of the expected distance between the reconstructed and true observations:
@@ -744,7 +745,7 @@ The reconstruction loss is defined in terms of the expected distance between the
 L_{rec}=\mathbb E_{h\sim (\mu\leftrightarrow \pi)}\rho(R(D(o_t)), o_t|t\in [T])
 \end{equation}
 
-\subsection{Model fit in observation and feature space}
+\subsection{Model fit quality in observation and feature spaces}
 We also would like the model to predict the future time-steps correctly. This can be achieved in one of two ways.
 
 \begin{enumerate}
@@ -824,7 +825,7 @@ $$
 L_{sparse}=\mathbb E K(B)=\sum\limits_{x\in X_{in}}\|P_x\|_1
 $$
 
-\subsection{Ranges of probabilities and exploration}
+\subsection{Ranges of edge presence probabilities and exploration}
 \label{subsec:proba_ranges}
 In case if for some of the probabilities $P_{xx'}=0$, or $P_{xx'}=1$, that feature is {\em never} selected and is never active, or is {\em always} selected, and the model never explores cases where this feature is not enabled.
 
@@ -856,7 +857,7 @@ It means that the loss with $B_{xx'}$ disabled is upper-bounded by the current l
     To avoid a case when there are no samples with $\xi=1$ (with low $p$), we limit the range of $p$ to be $p\geq p_{\min}=0.01=1\%$. Setting this value higher results in feature duplicates, as the model tries to predict the outputs even from partially present features. A value of $1\%$ with a batch size of $T=5000$ gives $50$ samples with $\xi=1$ in the worse case (on average), which is empirically sufficient to turn features on. To turn the features off, we introduce a sparsity regularizer.
 \end{example}
 
-\subsection{Non-stationarity and adding the mask to the model}
+\subsection{Non-stationarity and adding the mask as the input to the model}
 Consider the data that the functions $F_x$ are fit on, when the probabilities $P$ change:
 $$
 fa_t\odot B_x\to x_{t+1}
@@ -1031,7 +1032,7 @@ In order to assess the quality of the solution, we track the following quantitie
     \item Total entropy of distributions $Be(P_{xx'})$. This quantity should be low at the end of training, because all features should be either turned on or off.
 \end{itemize}
 
-\subsection{Separate networks to predict pixels and models}
+\subsection{Separate networks to predict pixels and features}
 Since we would like our features to be disentangled (corresponding to different things), there is (by definition) no benefit of multi-task learning. In our experiments (see \autoref{ch:evaluation}) we show that multi-task learning harms convergence speed in case if the tasks are not related. We explain it by the fact that a shared model has layers that are used by all tasks. If the tasks are not related, it is hard for gradient descent to "split" the neurons between tasks, as all of them "want" to use the neurons at a layer. The same applies to the reconstructor (predicting weakly correlated pixels in a toy grid world), and the decoder (predicting features that are disentangled)\footnote{In case of a convolutional decoder, this part is shared, but the subsequent fully-connected layers are not. Decoding the image is a shared task, but decoding features from that representation is not}. This approach can be found in \cite{Ke2019}
 
 In order to implement the separate networks we use the {\tt einsum} operator in pytorch to implement "vectorized" fully-connected networks.
@@ -1429,11 +1430,28 @@ If we declare that we need to first apply a transformation in which the graph be
 
 Because of this connection between $\varphi$ and sparsity, our approach can be seen as approximately computing the $\varphi$ for the {\em environment}, in other words, how conscious it is. With this in mind, the VectorIncrement environment, for example, is not conscious: its causal graph is a union of two connected components (the "done" and the "time" is not connected to everything else), but can be seen as two "conscious" components. In contrast, the KeyChest environment's graph has only one connected component, and, thus, potentially has a non-$0$ $\varphi$ as a whole. However, this claim does not seem to be empirically testable, at least now.
 
-\section{The AIXI framework and its connection to our work}
-\label{sec:solomonoff_aixi}
+\section{Sparse causal models and the AIXI framework}
+A quick overview of the AIXI framework is given in \autoref{ch:solomonoff_aixi}. First, we note that while in theory, penalizing for model's complexity is inevitable (see \autoref{subsec:solomonoff}), for practical cases the total model complexity is limited by the hardware, and, therefore, we are free to favor more complex models over simpler ones.
+
+Having the simplicity prior arguably helps the convergence speed. Indeed, having a similar prior and a good inference algorithm approximating Bayesian inference would could that we obtain similar convergence results. Neural networks arguably do not have such a simplicity prior "built-in", as they are likely to learn spurious correlations\cite{ilyas2019adversarial}. Therefore, such a prior should be explicitly added.
+
+It is left for future work to test if using our approach leads to better sample-efficiency of learning dynamics model of RL environments.
+Our framework can be seen as another approximation\cite{Veness2010} to the true uncomputable AIXI framework, in a sense that we are defining a proxy for the model complexity in terms of its structure as $K(M)=\|B\|_0$.
+
+\section{Other future directions}
+The prior to have a simple model could make the agent require less data to train: since it expects the underlying dynamics to be simple, it will converge to the true model faster, because a more complex model (that a regular agent is likely to take as a first guess) will be discarded.
+
+Next, having a disentangled representation with independent mechanisms allows to reuse components in the model \cite{Bengio2012,Veerapaneni2019,Didolkar2021,Gomez2006}, and learn it even faster. Many environments share the same dynamics -- for example, navigating in a 2-dimensional maze with 4 actions (up, down, left, right). The learned graph would be the same for all such environments (up and down actions affecting the vertical coordinate variable, and the left-right actions the horizontal one). We can store the commonly-occurring patterns like this one (another example is the velocity of an object being mirrored when colliding with an obstacle), we could represent every environment as a number of "stock" components, or recurrent independent mechanisms (coordinate variables, colliding objects) with parameters, with a small number of custom ones. Such an approach would lead to faster learning, as the agent would "guess" a component much faster, compared to learning it from scratch.
+
+Finally, the method can be applied to challenging environments interesting in their own right. For example, the AlphaFold algorithm was applied to the protein folding problem. The model of protein folding that the agent learns is (aprori) not interpretable. However, using out method, we could obtain a sparse causal graph representing the dynamics of protein folding, which could be useful, because the problem becomes simpler. Indeed, our approach could discover interesting regularities in the way proteins fold, in terms of the final state depending only on the few variables in the initial state -- automating the process of discovery of the scientific laws of the natural world.
+
+% Appendices are optional
+\appendix
+\chapter{Optional background: Solomonoff induction and the AIXI framework}
+\label{ch:solomonoff_aixi}
 In this section, we consider the theoretical Solomonoff induction framework, which gives a convergence bound for Supervised learning for sequence prediction, along with the AIXI framework \cite{Hutter2003,legg2008machine}, which gives the same guarantee for RL. The frameworks described in this section do not provide direct practical results, as they are uncomputable \cite{Hutter2003}. There exist computable approximations\cite{Veness2010}.
 
-\subsection{Solomonoff induction}
+\section{Solomonoff induction}
 \label{subsec:solomonoff}
 We consider the class of all computable (having a probabilistic Turing machine that successively prints the string onto the tape) infinite distributions over the sequences of binary strings $\{\mu\}$. We assume that the true distribution is a member of this class. We are given symbols $x_t\in \{0,1\}$ one-by-one, and the task is to predict the next symbol given the previous ones. We apply the Bayesian approach: given a prior $\xi(\mu)\in[0,1]$ over the sequences $\mu$, we would like to find the posterior $\xi|(x_1,...,x_t)$ over the sequences given the observed data $x_1,...,x_t$. We denote as $K(\mu)$ the length of the shortest program that generates $\mu$\footnote{See \cite{Hutter2003} for a fully formal definition}.
 
@@ -1446,7 +1464,7 @@ $$
 
 Roughly speaking, the algorithm will make approximately $K(\mu)$ mistakes, when learning a sequence of complexity $K(\mu)$.
 
-\subsection{The AIXI framework}
+\section{The AIXI framework}
 \label{subsec:aixi}
 AIXI\cite{Hutter2003} is an extension of Solomonoff induction to the problem of Reinforcement Learning. We set $x_t=(o_t,r_t)$ -- the observation and the reward given by the environment. The action is selected greedily to optimize for the expected reward given the posterior (see Equation 23 in \cite{Hutter2003}):
 $$
@@ -1454,15 +1472,6 @@ a_{t+1}=\arg\max\limits_{a}\mathbb E_{x_{t+1},x_{t+2},...\sim \xi|(x_1,...,x_t)}
 $$
 
 Roughly speaking, this equation means that we first select the simplest environments (because the prior $\xi$ penalizes for sequence's complexity), that fit the observed data well. Having such a model, we simulate the future using tree search, and select an action optimizing for the discounted value.
-
-\subsection{Connection to \sysname}
-First, we note that while in theory, penalizing for model's complexity is inevitable (see \autoref{subsec:solomonoff}), for practical cases the total model complexity is limited by the hardware, and, therefore, we are free to favor more complex models over simpler ones.
-
-Having the simplicity prior arguably helps the convergence speed. Indeed, having a similar prior and a good inference algorithm approximating Bayesian inference would could that we obtain similar convergence results. Neural networks arguably do not have such a simplicity prior "built-in", as they are likely to learn spurious correlations\cite{ilyas2019adversarial}. Therefore, such a prior should be explicitly added.
-
-It is left for future work to test if using our approach leads to better sample-efficiency of learning dynamics model of RL environments.
-
-% Appendices are optional
 % \appendix
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % \chapter{How to make a transmogrifier}
