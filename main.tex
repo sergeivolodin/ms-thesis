@@ -1146,6 +1146,14 @@ $$
 \end{example}
 
 \subsection{VectorIncrement$(n)$ environment}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\linewidth]{plots/ve5_obs}
+    \caption{The $5$ components of the VectorIncrement environment displayed as $5\times 19$ images. The left image shows the digits, and the right image shows the same observation with a fixed permutation applied.}
+    \label{fig:ve5obs}
+\end{figure}
+
+
 The state has $n$ components, and there are $n$ actions. At the beginning, the state is a zero vector $s_1=0\in\mathbb R^n$. Executing action $i$ results in an increment in the $i$'th component of the state vector:
 $$
 s^j_{t+1}=\begin{cases}
@@ -1161,7 +1169,7 @@ $$
 
 If no encoder is applied, the ground-truth graph (without an encoder or a decoder) is given by $G_{f_if_j}=\mathds 1_{i=j}$, $G_{f_ia_j}=\mathds 1_{i=j}$, $G_{d,f_i}=1$, $G_{d,a_j}=0$, $G_{r,f_i}=1$, $G(r,a_i)=1$ for all but one action (we can always determine the action taken by all but one one-hot variables, since at every step exactly one action is taken). See Figure \ref{fig:ve5nodec}.
 
-The environment additionally supports rendering observations as images using a low-dimensional digits font, as well as optionally permuting the pixels of the observation to make it hard for humans to play.
+The environment additionally supports rendering observations as images using a low-dimensional digits font (see \autoref{fig:ve5obs}), as well as optionally permuting the pixels of the observation to make it hard for humans to play.
 
 \begin{figure}[h]
     \centering
@@ -1178,6 +1186,15 @@ The environment additionally supports rendering observations as images using a l
     \caption{The causal graph for the KeyChest environment. The actions influence the coordinates. At each time-step, the health variable decreases, and if it is $0$, the episode ends. Collected food (player coordinates equal to the food coordinates) increses health, and food disappears. Keys can be collected as well. A chest can only be collected in case if there are keys already collected, and in that case the number of collected keys decreases. A lamp is toggled in case if the player is at the button position.}
     \label{fig:envtruekc}
 \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.95\linewidth]{plots/keychest_5x5_1f1c1k_pre}\\
+    \includegraphics[width=0.95\linewidth]{plots/keychest_5x5_1f1c1k_post}
+    \caption{The two consecutive time-steps (top and bottom rows) of the KeyChest environment. The rows show the RGB render (leftmost image) and the binary object masks given as an observation. The player moved to the right and has collected a key. The health bar has decreased by 1 element.}
+    \label{fig:keychest5x51f1c1k}
+\end{figure}
+
 
 The environment is described fully in my previous publication \cite{Volodin2020} at ICLR CLDM 2020. The causal graph is shown in \autoref{fig:envtruekc}
 
