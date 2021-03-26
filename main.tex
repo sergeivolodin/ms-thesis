@@ -1201,9 +1201,34 @@ The environment is described fully in my previous publication \cite{Volodin2020}
 \section{True and learned causal graphs}
 \todo{Add graphs}
 \subsection{SparseMatrix$(5, 7)$ environment}
+First, we run the algorithm on the environment without an encoder. The task then simply corresponds to selecting the relevant features. The algorithm correctly uncovers the correct graph (see \autoref{fig:sm5adaptivelearnedgraph}).
+
+The results can be replicated by running the following command (about $3$ minutes):
+\begin{verbatim}
+python -m sparse_causal_model_learner_rl.learner \
+ --n_gpus 1 --nofail \
+ --config sparse_causal_model_learner_rl/configs/rl_const_sparsity_obs_space.gin \
+ --config sparse_causal_model_learner_rl/configs/env_sm5.gin \
+ --config sparse_causal_model_learner_rl/configs/with_lagrange_dual_sparsity.gin
+\end{verbatim}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{plots/sm5_noenc_graph}
+    \includegraphics[width=0.39\linewidth]{plots/sm5_learned_graph_matrix}
+    \caption{The learned graph for SparseMatrix$(5, 7)$ without an encoder. Left: the resulting causal graph. Right: the causal graph as a node adjacency matrix.}
+    \label{fig:sm5adaptivelearnedgraph}
+\end{figure}
+
 \subsection{VectorIncrement$(5)$ environment}
-Given the permuted pixels, the methods successfully uncovers a correct causal graph, with even fewer edges than anticipated. The results can be reproduced by running
-{\tt python sparse\_causal\_model\_learner\_rl/learner.py --n\_gpus 1 --nofail --config sparse\_causal\_model\_learner\_rl/configs/rl\_const\_sparsity\_obs\_space.gin --config sparse\_causal\_model\_learner\_rl/configs/env\_ve5\_with\_rew\_done.gin --config sparse\_causal\_model\_learner\_rl/configs/with\_lagrange\_dual\_sparsity.gin}
+Given the permuted pixels, the methods successfully uncovers a correct causal graph, with even fewer edges than anticipated. The results can be reproduced by running the following command (about $7.5$ hours):
+\begin{verbatim}
+python -m sparse_causal_model_learner_rl.learner \
+  --n_gpus 1 --nofail \
+  --config sparse_causal_model_learner_rl/configs/rl_const_sparsity_obs_space.gin \
+  --config sparse_causal_model_learner_rl/configs/env_ve5_with_rew_done.gin \
+  --config sparse_causal_model_learner_rl/configs/with_lagrange_dual_sparsity.gin
+\end{verbatim}
 
 \begin{figure}
     \centering
@@ -1237,6 +1262,41 @@ The \autoref{fig:ve5adaptivelearnedgraph} shows the learned graph for the enviro
 The \autoref{fig:ve5adaptivetrainlosses} shows the training curves during the run of \sysname. First, the Lagrange multiplier increases up to its maximal value of $10^{3}$, which corresponds to the phase where the initial (non-sparse) model is learned. Next, the parameter decreases and oscillates with decreasing magnitude. This corresponds to selecting the right edges in the graph. The oscillation in the Lagrange multiplier cause the values of $P_i$ to oscillate as well, which leads to an oscillation in the fit loss. Note that the sparsity gap is also oscillating, which means that the oscillation is caused solely by the change in the probabilities (and not in the quality of the model given all the features).
 %\subsection{VectorIncrement$(2)$ environment}
 \subsection{KeyChest$(5, 5)$ environment}
+We first run the algorithm on a vanilla grid-world (just the coordinate dynamics). The results can be reproduced via running the following command (takes about 3 minutes):
+
+\begin{verbatim}
+python -m sparse_causal_model_learner_rl.learner \
+ --n_gpus 1 --nofail \
+ --config sparse_causal_model_learner_rl/configs/rl_const_sparsity_obs_space.gin \
+ --config sparse_causal_model_learner_rl/configs/env_gw.gin \
+ --config sparse_causal_model_learner_rl/configs/with_lagrange_dual_sparsity.gin
+\end{verbatim}
+
+The Figure \ref{fig:gw_adaptivelearnedgraph} shows the resulting learned causal graph which is correct. Indeed, features correspond to the $x$ and $y$ coordinates, since actions are grouped into (left, right) and (down, up).
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{plots/gw_graph}
+    \includegraphics[width=0.39\linewidth]{plots/gw_graph_edge}
+    \caption{The learned graph for KeyChest without any objects or indicators (just the coordinate). Left: the resulting causal graph. Right: the causal graph as a node adjacency matrix.}
+    \label{fig:gw_adaptivelearnedgraph}
+\end{figure}
+
+The method also succeeds in recovering the health variable (Figure \ref{fig:kc_onlycoord_adaptivelearnedgraph}). The results can be reproduced in 6 hours via
+\begin{verbatim}
+python -m sparse_causal_model_learner_rl.learner \
+ --n_gpus 1 --nofail \
+ --config sparse_causal_model_learner_rl/configs/rl_const_sparsity_obs_space.gin \
+ --config keychest/config/5x5_onlycoord_obs.gin \
+ --config sparse_causal_model_learner_rl/configs/env_kc_5x5_onlycoord_obs.gin \
+ --config sparse_causal_model_learner_rl/configs/with_lagrange_dual_sparsity.gin
+\end{verbatim}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{plots/kc_onlycoord_graph}
+    \caption{The learned graph for KeyChest with only the health bar given along with the player mask. Left: the resulting causal graph. Right: the causal graph as a node adjacency matrix.}
+    \label{fig:kc_onlycoord_adaptivelearnedgraph}
+\end{figure}
 
 \section{Ablation study for VectorIncrement$(5)$}
 
